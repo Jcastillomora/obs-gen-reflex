@@ -1,0 +1,40 @@
+version: "3.9"
+
+services:
+  app:
+    image: local/reflex-app
+    build:
+      context: .
+    environment:
+      DB_URL: sqlite:///data/reflex.db
+    volumes:
+      - db-data:/app/data
+      - upload-data:/app/uploaded_files
+    ports:
+      - "3000:3000"   # Reflex app en modo desarrollo (opcional)
+      - "8000:8000"   # API, backend u otro servicio (según tu implementación)
+    restart: always
+
+  webserver:
+    image: caddy:2
+    build:
+      context: .
+      dockerfile: Caddy.Dockerfile
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - caddy-data:/data
+      - caddy-config:/config
+      - ./Caddyfile:/etc/caddy/Caddyfile
+    depends_on:
+      - app
+    restart: always
+
+volumes:
+  db-data:
+  upload-data:
+  caddy-data:
+  caddy-config:
