@@ -1,5 +1,5 @@
 import reflex as rx
-from typing import Optional
+from typing import Optional, List
 
 # modelo de la base de datos para los investigadores
 class Investigador(rx.Base):
@@ -7,7 +7,7 @@ class Investigador(rx.Base):
     rut_ir: str
     name: str
     orcid: Optional[str] = None
-    ocde_2: str
+    ocde_2: Optional[str] = None
     ocde_3: Optional[str] = None
     email: Optional[str] = None
     grado_mayor: Optional[str] = None

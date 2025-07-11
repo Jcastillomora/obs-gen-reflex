@@ -10,6 +10,7 @@ services:
     volumes:
       - db-data:/app/data
       - upload-data:/app/uploaded_files
+      - /home/admobge/obs-gen-reflex/OCDE/backend/:/app/OCDE/backend/
     ports:
       - "3000:3000"   # Reflex app en modo desarrollo (opcional)
       - "8000:8000"   # API, backend u otro servicio (según tu implementación)

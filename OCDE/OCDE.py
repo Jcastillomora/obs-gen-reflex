@@ -167,7 +167,7 @@ def _tabs_trigger(text: str, icon: str, value: str):
 def obs_inicio():
     return rx.vstack(
         huincha(),
-        banner_generator("/banner_home.png"),
+        banner_generator("/banner_home.jpg"),
         navbar_main(),
         contenido_home(),
         superbanner(),
@@ -282,10 +282,10 @@ def obs_contacto():
 def academicas():
     return rx.vstack(
         huincha(),
-        banner_generator("/banner_home.png"),
+        banner_generator("/banner_home.jpg "),
         navbar_main(),
         navbar_searchbar(),
-        # areas_selector(),
+        areas_selector(),
         # select_intro(),
         rx.flex(
             rx.hstack(
@@ -450,7 +450,7 @@ def investigator_page():
                                     ),
                                     rx.hover_card.content(
                                         rx.text(
-                                            "ORCID iD: un identificador único y permanente que distingue a los investigadores y conecta sus publicaciones y proyectos."
+                                            "ORCID: un identificador único y permanente que distingue a los investigadores y conecta sus publicaciones y proyectos."
                                             "Para más información, visita el sitio web de ORCID ",
                                             rx.link("Click Aquí", href="https://orcid.org/"),
                                             class_name="text-sm text-gray-700 p-2"
@@ -478,6 +478,9 @@ def investigator_page():
                                 align="center",
                                 width="100%",
                                 spacing="6",
+                            ),
+                            rx.box(
+                                rx.text("Disciplinas OCDE nivel 2", class_name="text-white p-2"),
                             ),
                             # rx.cond(
                             #     State.current_investigator.ocde_2,  # Si existe el campo
@@ -516,17 +519,19 @@ def investigator_page():
                                                 variant="solid",
                                                 color_scheme="iris",
                                                 high_contrast=False,
-                                                class_name="text-xs font-mono"
+                                                class_name="text-xs font-mono text-center"
                                             ),
                                             content=item,
-                                            class_name="bg-[#a280f6] font-mono"
+                                            class_name="bg-[#a280f6] font-mono text-center"
                                         )
                                     ),
                                     columns=Breakpoints(initial="1", sm="2", md="3", lg="3", xl="3"),
                                     spacing="2",
                                     class_name="w-full py-5"
                                 ),
-                                rx.box("No hay datos disponibles")  # Caso por defecto
+                                rx.box(
+                                    rx.text("No hay datos disponibles", class_name="text-white p-2"),
+                                )  
                             ),
                             spacing="4",
                             class_name="p-2",
@@ -628,7 +633,9 @@ def investigator_page():
                             width="100%",
                             spacing="3",
                         ),
-
+                        rx.box(
+                            rx.text("Disciplinas OCDE nivel 2", color="white"),
+                        ),
                         rx.cond(
                                 State.current_investigator.ocde_2,
                                 rx.grid(
@@ -657,7 +664,9 @@ def investigator_page():
                                     spacing="2",
                                     class_name="w-full py-5"
                                 ),
-                                rx.box("No hay datos disponibles")  # Caso por defecto
+                                rx.box(
+                                    rx.text("No hay datos disponibles", class_name="text-white p-2"),
+                                ) 
                             ),
                         rx.vstack(
                             rx.hstack(

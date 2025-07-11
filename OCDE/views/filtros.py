@@ -36,7 +36,7 @@ def areas_selector() -> rx.Component:
     return rx.vstack(
         rx.hstack(
             rx.heading(
-                "Filtrar por Área"
+                "Filtrar por Disciplina OCDE nivel 2"
                 + f" ({State.selected_areas.length()})",
                 size="4",
             ),
@@ -64,6 +64,26 @@ def areas_selector() -> rx.Component:
             justify="between",
             width="100%",
         ),
+        # nuevo
+        rx.hstack(
+            rx.select(
+                items=State.sorted_areas,
+                on_change=lambda e: State.set_selected_area_temp(e),
+                placeholder="Selecciona un área",
+                size="2",
+                style={"minWidth": "300px"}
+            ),
+            rx.button(
+                rx.icon("plus", size=16),
+                "Agregar área",
+                on_click=State.add_selected_area,
+                variant="soft",
+                size="2",
+                color_scheme="blue",
+            ),
+            spacing="2",
+            reset_on_submit=True,
+        ),
         rx.hstack(
             rx.foreach(State.selected_areas, selected_area_chip),
             wrap="wrap",
@@ -71,12 +91,12 @@ def areas_selector() -> rx.Component:
             justify_content="start",
         ),
         rx.divider(),
-        rx.hstack(
-            rx.foreach(State.all_areas, unselected_area_chip),
-            wrap="wrap",
-            spacing="2",
-            justify_content="start",
-        ),
+        # rx.hstack(
+        #     rx.foreach(State.all_areas, unselected_area_chip),
+        #     wrap="wrap",
+        #     spacing="2",
+        #     justify_content="start",
+        # ),
         spacing="4",
         align_items="center",
         width="100%",

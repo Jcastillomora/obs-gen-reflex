@@ -107,6 +107,10 @@ class State(rx.State):
     all_areas: list[str] = []
     selected_areas: list[str] = []
 
+    selected_area: str = ""
+
+    selected_area_temp: str = ""
+
     @rx.event
     def add_area(self, area: str):
         if area not in self.selected_areas:
@@ -119,7 +123,7 @@ class State(rx.State):
 
     @rx.event
     def select_all_areas(self):
-        self.selected_areas = list(self.all_areas)
+        self.selected_areas = list(self.all_areas).sort()
 
     @rx.event
     def clear_areas(self):
@@ -138,15 +142,36 @@ class State(rx.State):
                 inv for inv in self.investigadores
                 if (term in str(inv.id))
                 or (term in inv.name.lower())
+                or (term in inv.ocde_2.lower())
                 # or (term in inv.titulo.lower())
                 # or (term in inv.programa.lower())
             ]
         else:
             filtered = self.investigadores
         # if self.selected_areas:
-        #     filtered = [inv for inv in filtered if inv.programa in self.selected_areas]
+        #     filtered = [inv for inv in filtered if inv.ocde_2 in self.selected_areas]
+        if self.selected_areas:
+            filtered = [
+                inv for inv in filtered
+                if all(area in inv.ocde_2 for area in self.selected_areas)
+            ]
+
         return filtered
-    
+    #nuevo
+    @rx.var
+    def sorted_areas(self) -> list[str]:
+        return sorted([a for a in self.all_areas if a.strip()])
+
+
+
+    @rx.var
+    def sorted_selected_areas(self) -> list[str]:
+        return sorted(self.selected_areas)
+
+    def add_selected_area(self):
+        if self.selected_area_temp and self.selected_area_temp not in self.selected_areas:
+            self.selected_areas.append(self.selected_area_temp)
+
     #25/01/2025
     @rx.event
     def load_grid_data(self):
@@ -210,12 +235,34 @@ class State(rx.State):
         # df["unidad_contrato"] = df["unidad_contrato"].fillna("")
         # df["ocde_2"] = df["ocde_2"].astype(str).apply(lambda x: " ,".join(x.split("#")) if x and x != "nan" else [])
         # df["ocde_2"] = df["ocde_2"].astype(str).apply(lambda x: x.split("#") if x and x != "nan" else [])
+
         df["ocde_2"] = df["ocde_2"].astype(str).apply(lambda x: ", ".join(x.split("#")) if x and x != "nan" else "")
+
+        # df["ocde_2"] = (
+        #     df["ocde_2"]
+        #     .astype(str)
+        #     .apply(lambda x: [s.strip() for s in x.split("#")] if x and x != "nan" else [])
+        # )
+
 
         self.investigadores = [Investigador(**row.to_dict()) for _, row in df.iterrows()]
 
         # self.investigadores = [Investigador(**row.to_dict()) for _, row in df.iterrows()]
         self.total_investigadores = len(self.investigadores)
+        
+        self.all_areas = (
+            sorted(
+                df["ocde_2"].dropna()
+                .str.split(',')  # Separar por comas
+                .explode()      # Convertir cada elemento de las listas en filas
+                .str.strip()    # Eliminar espacios alrededor
+                .unique()       # Obtener valores únicos
+                .tolist()       # Convertir a lista
+            )     
+        )
+
+
+        # self.all_areas = df["ocde_2"].dropna().unique().tolist()
         # self.all_areas = df["programa"].dropna().unique().tolist()
 
     # def load_investigador(self, id: int):
