@@ -221,6 +221,53 @@ def obs_indicadores():
         spacing="0",
     )
 
+# Página de indicadores
+@rx.page(route="/obs_otros_indicadores", title="Otros Indicadores")
+def obs_indicadores():
+    return rx.vstack(
+        huincha(),
+        banner_generator("/banner_indicadores.png"),
+        navbar_main(),
+        rx.box(
+            rx.desktop_only(
+                rx.html(
+                    """
+                    <iframe
+                        title='indicadores_ines_genero_v2'
+                        src='https://app.powerbi.com/view?r=eyJrIjoiM2U1MzJmZTItYzEyZC00ZjBiLTkwMDItODVjOTIwOGNmOWZjIiwidCI6ImZjZDlhYmQ4LWRmY2QtNGExYS1iNzE5LThhMTNhY2ZkNWVkOSIsImMiOjR9'
+                        frameborder='0'
+                        allowFullScreen='true'
+                        width='800'
+                        height='636'
+                        style='aspect-ratio: 16/9; width: 100%;'
+                    ></iframe>
+                    """
+                ),
+                class_name="p-10",
+            ),
+            rx.mobile_and_tablet(
+                rx.html(
+                    """
+                    <iframe
+                        title='indicadores_ines_genero_v2'
+                        src='https://app.powerbi.com/view?r=eyJrIjoiM2U1MzJmZTItYzEyZC00ZjBiLTkwMDItODVjOTIwOGNmOWZjIiwidCI6ImZjZDlhYmQ4LWRmY2QtNGExYS1iNzE5LThhMTNhY2ZkNWVkOSIsImMiOjR9'
+                        frameborder='0'
+                        allowFullScreen='true'
+                        style='aspect-ratio: 16/9; width: 100%;'
+                    ></iframe>
+                    """
+                ),
+            ),
+            width="100%",           # Ancho 100% del contenedor
+            class_name="sm:p-2 px-3 justify-center items-center", 
+            style={"overflowX": "hidden"},
+        ),
+        superbanner(),
+        footer_inst(),
+        spacing="0",
+    )
+
+
 # Página de repositorio
 @rx.page(route="/obs_repositorio", title="Repositorio")
 def obs_repositorio():
@@ -334,7 +381,7 @@ def academicas():
                             rx.hstack(
                                 rx.link(
                                     rx.image(src="/orcid_icon.png"),
-                                    href=inv["orcid"],
+                                    href=str(inv["orcid"]),
                                 ),
                                 rx.link(
                                     rx.button(
@@ -389,7 +436,7 @@ def academicas():
     )
 
 # Página perfil del investigador
-@rx.page(route="/investigadora/[id]", on_load=[State.load_entries_pub, State.load_entries])
+@rx.page(route="/investigadora/[id]", on_load=[State.load_entries_pub, State.load_entries, State.load_grid_data])
 def investigator_page():
     """Muestra el detalle del investigador según el índice en la URL."""
     return rx.vstack(
@@ -441,11 +488,12 @@ def investigator_page():
                                                 State.current_investigator.orcid,
                                                 "#",
                                             ),
-                                            is_disabled=rx.cond(
-                                                State.current_investigator.orcid,
-                                                False,
-                                                True,
-                                            ),
+                                            is_disabled=~State.current_investigator.orcid,
+                                            # is_disabled=rx.cond(
+                                            #     State.current_investigator.orcid,
+                                            #     False,
+                                            #     True,
+                                            # ),
                                         ),
                                     ),
                                     rx.hover_card.content(
@@ -754,7 +802,7 @@ def investigator_page():
         spacing="0",
         # background="url('/bg_inv.png')",
         background_color="#dfdfdf",
-        on_mount=State.load_grid_data, 
+        # on_mount=State.load_grid_data, 
 )
 
 # Estilos personalizados

@@ -41,15 +41,15 @@ def areas_selector() -> rx.Component:
                 size="4",
             ),
             rx.hstack(
-                rx.button(
-                    rx.icon("plus", size=16),
-                    "Todas",
-                    variant="soft",
-                    size="2",
-                    on_click=State.select_all_areas,
-                    color_scheme="green",
-                    cursor="pointer",
-                ),
+                # rx.button(
+                #     rx.icon("plus", size=16),
+                #     "Todas",
+                #     variant="soft",
+                #     size="2",
+                #     on_click=State.select_all_areas,
+                #     color_scheme="green",
+                #     cursor="pointer",
+                # ),
                 rx.button(
                     rx.icon("trash", size=16),
                     "Limpiar",
@@ -71,6 +71,7 @@ def areas_selector() -> rx.Component:
                 on_change=lambda e: State.set_selected_area_temp(e),
                 placeholder="Selecciona un área",
                 size="2",
+                color_scheme="indigo",
                 style={"minWidth": "300px"}
             ),
             rx.button(
@@ -79,12 +80,13 @@ def areas_selector() -> rx.Component:
                 on_click=State.add_selected_area,
                 variant="soft",
                 size="2",
-                color_scheme="blue",
+                color_scheme="indigo",
             ),
             spacing="2",
             reset_on_submit=True,
         ),
         rx.hstack(
+            rx.divider(),
             rx.foreach(State.selected_areas, selected_area_chip),
             wrap="wrap",
             spacing="2",

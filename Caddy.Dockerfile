@@ -1,4 +1,4 @@
-FROM library/caddy
+FROM caddy:latest
 
-COPY --from=local/reflex-app /app/.web/_static /srv
+COPY --from=local/reflex-app /app/.web/build/client /srv
 ADD Caddyfile /etc/caddy/Caddyfile

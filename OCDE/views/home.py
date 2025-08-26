@@ -82,6 +82,11 @@ def navbar_link(text: str, url: str) -> rx.Component:
         rx.text(text, size="4", class_name="text-black font-semibold hover:text-indigo-500"), href=url
     )
 
+def navbar_link_dropdown(text: str, url: str) -> rx.Component:
+    return rx.link(
+        rx.text(text, size="3", class_name="p-2 text-black hover:text-indigo-500"), href=url
+    )
+
 #Navbar principal
 def navbar_main() -> rx.Component:
     return rx.box(
@@ -89,7 +94,27 @@ def navbar_main() -> rx.Component:
             rx.hstack(
                 rx.hstack(
                     navbar_link("Inicio", "/"),
-                    navbar_link("Indicadores", "/obs_indicadores"),
+                    # navbar_link("Indicadores", "/obs_indicadores"),
+                    rx.menu.root(
+                        rx.menu.trigger(
+                            rx.button(
+                                rx.text(
+                                    "Indicadores",
+                                    size="4",
+                                    weight="medium",
+                                    class_name="text-black font-semibold hover:text-indigo-500",
+                                ),
+                                rx.icon("chevron-down"),
+                                weight="medium",
+                                variant="ghost",
+                                size="3",
+                            ),
+                        ),
+                        rx.menu.content(
+                            navbar_link_dropdown("Indicadores ANID", "/obs_indicadores"),
+                            navbar_link_dropdown("Otros Indicadores", "/obs_otros_indicadores"),
+                        ),
+                    ),
                     navbar_link("Repositorio", "/obs_repositorio"),
                     navbar_link("Investigadoras", "/investigadoras"),
                     navbar_link("Contacto", "/obs_contacto"),
@@ -114,11 +139,13 @@ def navbar_main() -> rx.Component:
                         rx.menu.item(navbar_link("Investigadoras", "/investigadoras")),
                         rx.menu.item(navbar_link("Contacto", "/obs_contacto")),
                         spacing="5",
+                        color_scheme="iris",
                     ),
                     justify="end",
                 ),
                 justify="center",
                 align_items="center",
+                variant="soft",
             ),
         ),
         bg=rx.color("accent", 3),
