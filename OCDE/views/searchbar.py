@@ -12,12 +12,13 @@ def navbar_searchbar() -> rx.Component:
                         height="auto",
                         border_radius="25%",
                         size=24,
+                        class_name="text-indigo-900"
                     ),
                     rx.vstack(
                         rx.heading(
-                            "Investigadoras", size="7", weight="bold"
+                            "Investigadoras", size="7", weight="bold", class_name="text-indigo-900"
                         ),
-                        rx.text("Proyectos y Publicaciones 2018 - 2024", size="5"),
+                        rx.text("Proyectos y Publicaciones 2018 - 2024", size="5", class_name="text-indigo-900"),
                         spacing="0",
                     ),
                     # rx.badge(
@@ -42,8 +43,8 @@ def navbar_searchbar() -> rx.Component:
                     size="2",
                     max_width="250px",
                     width="100%",
-                    variant="surface",
-                    color_scheme="gray",
+                    variant="classic",
+                    color_scheme="indigo",
                     on_change=lambda val: State.set_search_term(val),
                 ),
                 justify="between",
@@ -66,9 +67,9 @@ def navbar_searchbar() -> rx.Component:
                     # ),
                     rx.vstack(
                         rx.heading(
-                            "Investigadoras", size="4", weight="bold"
+                            "Investigadoras", size="4", weight="bold", class_name="text-indigo-900"
                         ),
-                        rx.text("Proyectos y Publicaciones 2018-2024", size="1"),
+                        rx.text("Proyectos y Publicaciones 2018-2024", size="1", class_name="text-indigo-900"),
                         spacing="0",
                     ),
                     align_items="center",
@@ -118,12 +119,13 @@ def navbar_searchbar_notsearch() -> rx.Component:
                         height="auto",
                         border_radius="25%",
                         size=24,
+                        class_name="text-indigo-900"
                     ),
                     rx.vstack(
                         rx.heading(
-                            "Investigadoras", size="7", weight="bold"
+                            "Investigadoras", size="7", weight="bold", class_name="text-indigo-900"
                         ),
-                        rx.text("Proyectos y Publicaciones 2018 - 2024", size="5"),
+                        rx.text("Proyectos y Publicaciones 2018 - 2024", size="5", class_name="text-indigo-900"),
                         spacing="0",
                     ),
                     # rx.badge(
@@ -139,9 +141,8 @@ def navbar_searchbar_notsearch() -> rx.Component:
                 justify="between",
                 align_items="center",
                 spacing="0",
-                width="100%",
                 top="0px",
-                class_name="px-10",
+                class_name="w-full px-10",
             ),
         ),
         rx.mobile_and_tablet(
@@ -153,12 +154,13 @@ def navbar_searchbar_notsearch() -> rx.Component:
                         width="2em",
                         height="auto",
                         border_radius="25%",
+                        class_name="text-indigo-900"
                     ),
                     rx.vstack(
                         rx.heading(
-                            "Investigadoras", size="4", weight="bold"
+                            "Investigadoras", size="4", weight="bold", class_name="text-indigo-900"
                         ),
-                        rx.text("Proyectos y Publicaciones 2018-2024", size="1"),
+                        rx.text("Proyectos y Publicaciones 2018-2024", size="1", class_name="text-indigo-900"),
                         spacing="0",
                     ),
                     align_items="center",

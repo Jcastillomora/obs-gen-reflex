@@ -1,5 +1,126 @@
 import reflex as rx
 
+
+def home_card(
+    icon: str = "",
+    title: str = "Analizamos y Visualizamos",
+    description: str = "datos sobre participación y trayectorias de Investigadoras",
+    color: str = "indigo",
+) -> rx.Component:
+    """A visually stunning card component with animations and customizable content."""
+    return rx.el.div(
+        rx.el.div(
+            rx.el.div(
+                # Background effects layer
+                rx.el.div(
+                    rx.el.div(
+                        class_name=f"absolute inset-0 bg-gradient-to-tr from-{color}-500/5 to-{color}-400/10 opacity-40 group-hover:opacity-60 transition-opacity duration-500"
+                    ),
+                    rx.el.div(
+                        class_name=f"absolute -bottom-20 -left-20 w-48 h-48 rounded-full bg-gradient-to-tr from-{color}-500/10 to-transparent blur-3xl opacity-30 group-hover:opacity-50 transform group-hover:scale-110 transition-all duration-700 animate-bounce delay-500"
+                    ),
+                    rx.el.div(
+                        class_name=f"absolute top-10 left-10 w-16 h-16 rounded-full bg-{color}-500/5 blur-xl animate-ping"
+                    ),
+                    rx.el.div(
+                        class_name=f"absolute bottom-16 right-16 w-12 h-12 rounded-full bg-{color}-500/5 blur-lg animate-ping delay-1000"
+                    ),
+                    rx.el.div(
+                        class_name=f"absolute inset-0 bg-gradient-to-r from-transparent via-{color}-500/5 to-transparent transform -skew-x-12 translate-x-full group-hover:translate-x-[-200%] transition-transform duration-1000"
+                    ),
+                    class_name="absolute inset-0 z-0 overflow-hidden",
+                ),
+                
+                # Content layer
+                rx.el.div(
+                    rx.el.div(
+                        # Icon/Image container with animations
+                        rx.el.div(
+                            rx.el.div(
+                                class_name=f"absolute inset-0 rounded-full border-2 border-{color}-500/20 animate-ping"
+                            ),
+                            rx.el.div(
+                                class_name=f"absolute inset-0 rounded-full border border-{color}-500/10 animate-pulse delay-500"
+                            ),
+                            rx.el.div(
+                                rx.el.div(
+                                    # Aquí va la imagen personalizable
+                                    rx.icon(
+                                        icon,
+                                        alt="Card icon",
+                                        class_name="w-16 h-16 object-contain",
+                                    ),
+                                    class_name="transform group-hover:rotate-180 transition-transform duration-700",
+                                ),
+                                class_name=f"p-6 rounded-full backdrop-blur-lg border border-{color}-500/20 bg-gradient-to-br from-black/80 to-gray-900/60 shadow-2xl transform group-hover:rotate-12 group-hover:scale-110 transition-all duration-500 hover:shadow-{color}-500/20",
+                            ),
+                            class_name="relative mb-6",
+                        ),
+                        
+                        # Title
+                        rx.el.div(
+                            rx.text(
+                                title,
+                                class_name=f"text-3xl font-bold bg-gradient-to-r from-{color}-400 via-{color}-500 to-{color}-400 bg-clip-text text-transparent",
+                            ),
+                            class_name="mb-4 transform group-hover:scale-105 transition-transform duration-300",
+                        ),
+                        
+                        # Description
+                        rx.el.div(
+                            rx.text(
+                                description,
+                                class_name="text-gray-300 text-sm text-center leading-relaxed transform group-hover:text-gray-200 transition-colors duration-300",        
+                            ),
+                            class_name="space-y-1 max-w-sm",
+                        ),
+                        
+                        # Decorative line
+                        rx.el.div(
+                            class_name=f"mt-6 w-1/3 h-0.5 bg-gradient-to-r from-transparent via-{color}-500 to-transparent rounded-full transform group-hover:w-1/2 group-hover:h-1 transition-all duration-500 animate-pulse"
+                        ),
+                        
+                        class_name="flex flex-col items-center text-center",
+                    ),
+                    class_name="p-8 relative z-10",
+                ),
+                
+                # Corner decorations
+                rx.el.div(
+                    class_name=f"absolute top-0 left-0 w-20 h-20 bg-gradient-to-br from-{color}-500/10 to-transparent rounded-br-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                ),
+                rx.el.div(
+                    class_name=f"absolute bottom-0 right-0 w-20 h-20 bg-gradient-to-tl from-{color}-500/10 to-transparent rounded-tl-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                ),
+            ),
+            class_name=f"text-white rounded-3xl border border-{color}-500/20 bg-gradient-to-tr from-[#0F0F0F] to-[#0B0B0B] shadow-2xl duration-700 z-10 relative backdrop-blur-xl hover:border-{color}-500/40 overflow-hidden hover:shadow-{color}-500/10 hover:shadow-3xl w-[350px]",
+        ),
+        class_name="group cursor-pointer transform transition-all duration-500 hover:scale-105 hover:-rotate-1",
+    )
+
+
+def loader_box(box_number: int) -> rx.Component:
+    """A single box in the loader."""
+    return rx.el.div(
+        rx.el.div(class_name="side-left"),
+        rx.el.div(class_name="side-right"),
+        rx.el.div(class_name="side-top"),
+        class_name=f"box box-{box_number}",
+    )
+
+def loader() -> rx.Component:
+    """The loader component."""
+    return rx.el.div(
+        rx.el.div(
+            loader_box(1),
+            loader_box(2),
+            loader_box(3),
+            loader_box(4),
+            class_name="loader",
+        ),
+        class_name="flex items-center justify-center p-10",
+    )
+
 #Huincha principal
 def huincha():
     return rx.box(
@@ -84,7 +205,7 @@ def navbar_link(text: str, url: str) -> rx.Component:
 
 def navbar_link_dropdown(text: str, url: str) -> rx.Component:
     return rx.link(
-        rx.text(text, size="3", class_name="p-2 text-black hover:text-indigo-500"), href=url
+        rx.text(text, size="3", class_name="bg-slate-300 p-2 text-black font-semibold hover:text-indigo-500"), href=url
     )
 
 #Navbar principal
@@ -108,11 +229,13 @@ def navbar_main() -> rx.Component:
                                 weight="medium",
                                 variant="ghost",
                                 size="3",
+                                class_name="text-black font-semibold hover:text-indigo-500",
                             ),
                         ),
                         rx.menu.content(
                             navbar_link_dropdown("Indicadores ANID", "/obs_indicadores"),
                             navbar_link_dropdown("Otros Indicadores", "/obs_otros_indicadores"),
+                            class_name="bg-slate-300 rounded-md shadow-md",
                         ),
                     ),
                     navbar_link("Repositorio", "/obs_repositorio"),
@@ -128,18 +251,41 @@ def navbar_main() -> rx.Component:
         rx.mobile_and_tablet(
             rx.hstack(
                 rx.menu.root(
-                    rx.text("Menú"),
+                    rx.text("Menú", class_name="text-black font-semibold hover:text-indigo-500"),
                     rx.menu.trigger(
-                        rx.icon("menu", size=30)
+                        rx.icon("menu", size=30, class_name="text-black font-semibold hover:text-indigo-500")
                     ),
                     rx.menu.content(
                         rx.menu.item(navbar_link("Inicio", "/")),
-                        rx.menu.item(navbar_link("Indicadores", "/obs_indicadores")),
+                        # rx.menu.item(navbar_link("Indicadores", "/obs_indicadores")),
+                        rx.menu.root(
+                            rx.menu.trigger(
+                                rx.button(
+                                    rx.text(
+                                        "Indicadores",
+                                        size="4",
+                                        weight="medium",
+                                        class_name="text-black font-semibold hover:text-indigo-500",
+                                    ),
+                                    rx.icon("chevron-down"),
+                                    weight="medium",
+                                    variant="ghost",
+                                    size="3",
+                                    class_name="text-black font-semibold hover:text-indigo-500",
+                                ),
+                            ),
+                            rx.menu.content(
+                                navbar_link_dropdown("Indicadores ANID", "/obs_indicadores"),
+                                navbar_link_dropdown("Otros Indicadores", "/obs_otros_indicadores"),
+                                class_name="bg-slate-300 rounded-md shadow-md",
+                            ),
+                        ),
                         rx.menu.item(navbar_link("Repositorio", "/obs_repositorio")),
                         rx.menu.item(navbar_link("Investigadoras", "/investigadoras")),
                         rx.menu.item(navbar_link("Contacto", "/obs_contacto")),
                         spacing="5",
-                        color_scheme="iris",
+                        color_scheme="indigo",
+                         class_name="bg-slate-400 rounded-md shadow-md"
                     ),
                     justify="end",
                 ),
@@ -148,12 +294,11 @@ def navbar_main() -> rx.Component:
                 variant="soft",
             ),
         ),
-        bg=rx.color("accent", 3),
         padding="1em",
         # position="fixed",
         # top="0px",
         # z_index="5",
-        width="100%",
+        class_name="w-full bg-slate-300 shadow-md",
     )
 
 #Contenido de la página de inicio
@@ -161,15 +306,20 @@ def contenido_home():
     return rx.box(
         rx.vstack(
             rx.box(
-                rx.text("El Observatorio de Género y Ciencia de la Universidad de La Frontera tiene como objetivo principal aportar al desarrollo de capacidades institucionales a través del monitoreo de las acciones de transversalización del enfoque de género desde una perspectiva procedimental y normativa en el ámbito de I+D+i+e de base científica tecnológica en la institución.", class_name="text-white text-left antialiased md:text-xl md:pr-40 sm:text-base p-10"),
-                background_image="url('/text_banner.png')",
-                background_size="cover",
-                background_position="center",
-                background_repeat="no-repeat",
-                class_name="flex rounded-xl justify-center items-center md:p-20 sm:p-10 p-30",
+                rx.text("El Observatorio de Género y Ciencia de la Universidad de La Frontera tiene como objetivo principal aportar al desarrollo de capacidades institucionales a través del monitoreo de las acciones de transversalización del enfoque de género desde una perspectiva procedimental y normativa en el ámbito de I+D+i+e de base científica tecnológica en la institución.", class_name="text-indigo-900 text-left antialiased text-base sm:text-xs md:text-lg lg:text-xl leading-relaxed"),
+                class_name="w-full bg-slate-300 rounded-lg shadow-lg p-6",
             ),
+            class_name="w-full text-center p-4 sm:p-4 md:p-30 lg:p-30 xl:p-30",
         ),
-        class_name="w-full h-full rounded-xl px-5 md:px-40 py-10",
+        rx.flex(
+            home_card("chart-pie", title="Monitoreamos", description="la participación de las investigadoras en proyectos y publicaciones", color="orange"),
+            home_card("scan-eye", title="Visualizamos", description="la distribución de las investigadoras según áreas de conocimiento y líneas de investigación", color="violet"),
+            home_card("file-chart-column", title="Reportamos", description="hallazgos clave sobre la participación de las investigadoras", color="gray"),
+            class_name="justify-center gap-x-30 gap-y-10 flex-wrap py-5",
+        ),
+        # background_image="url('/bg_inv.png')",
+        # background_size="cover",
+        class_name="w-full bg-slate-200 sm:p-6 md:px-10 lg:px-20 xl:px-40",
     )
 
 #Superbanner de la página de inicio

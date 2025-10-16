@@ -1,11 +1,11 @@
 import reflex as rx
+import asyncio
 from .data_items import all_items
 import pandas as pd
 import numpy as np
-from typing import List, Dict
 from .models import Investigador, Publicaciones, Proyectos
-from typing import Optional
-from typing import Dict
+from typing import Dict, List, Optional, TypedDict
+
 
 proyectos_csv = "proyectos_total_ocde1_.csv"
 
@@ -13,63 +13,29 @@ academicas_csv = "academicas_clean.csv"
 
 publicaciones_csv = "publicaciones___.csv"
 
-# df_publicaciones = pd.read_csv(publicaciones_csv, encoding="utf-8-sig")
-
-
-# total_publicaciones_22 = len(df_publicaciones[df_publicaciones["año"] == 2022])
-# total_publicaciones_21 = len(df_publicaciones[df_publicaciones["año"] == 2021])
-
-# #hacer conteo total de proyectos
-# total_proyectos = len(df_proyectos)
-# #hacer conteo de proyectos por años desde 2018 a 2023, valor int
-# # proyectos_2018 = len(df_proyectos[df_proyectos["año"] == 2018])
-# # proyectos_2019 = len(df_proyectos[df_proyectos["año"] == 2019])
-# # proyectos_2020 = len(df_proyectos[df_proyectos["año"] == 2020])
-# # proyectos_2021 = len(df_proyectos[df_proyectos["año"] == 2021])
-# # proyectos_2022 = len(df_proyectos[df_proyectos["año"] == 2022])
-# proyectos_2023 = len(df_proyectos[df_proyectos["año"] == 2023])
-# proyectos_2024 = len(df_proyectos[df_proyectos["año"] == 2024])
-
-# #conteo de investigadores unicos en la columna investigador_responsable
-# investigadores = len(df_proyectos["investigador_responsable"].unique())
-# inv_2018 = len(df_proyectos[df_proyectos["año"] == 2018]["investigador_responsable"].unique())
-# inv_2019 = len(df_proyectos[df_proyectos["año"] == 2019]["investigador_responsable"].unique())
-# inv_2020 = len(df_proyectos[df_proyectos["año"] == 2020]["investigador_responsable"].unique())
-# inv_2021 = len(df_proyectos[df_proyectos["año"] == 2021]["investigador_responsable"].unique())
-# inv_2022 = len(df_proyectos[df_proyectos["año"] == 2022]["investigador_responsable"].unique())
-# inv_2023 = len(df_proyectos[df_proyectos["año"] == 2023]["investigador_responsable"].unique())
-# inv_2024 = len(df_proyectos[df_proyectos["año"] == 2024]["investigador_responsable"].unique())
-
-# #conteo de disciplinas unicas en la columna disciplina
-# disciplinas = len(df_proyectos["ocde_1"].unique())
-# ciencias_agricolas = len(df_proyectos[df_proyectos["ocde_1"] == "Ciencias Agrícolas"])
-# #ciencias agricolas del 2023
-# ciencias_agricolas_2023 = len(df_proyectos[(df_proyectos["ocde_1"] == "CIENCIAS AGRÍCOLAS") & (df_proyectos["año"] == 2023)])
-# ciencias_agricolas_2024 = len(df_proyectos[(df_proyectos["ocde_1"] == "CIENCIAS AGRÍCOLAS") & (df_proyectos["año"] == 2024)])
-
-# #ciencias naturales del 2023
-# ciencias_naturales_2023 = len(df_proyectos[(df_proyectos["ocde_1"] == "CIENCIAS NATURALES") & (df_proyectos["año"] == 2023)])
-# ciencias_naturales_2024 = len(df_proyectos[(df_proyectos["ocde_1"] == "CIENCIAS NATURALES") & (df_proyectos["año"] == 2024)])
-
-# #ciencias sociales del 2023
-# ciencias_sociales_2023 = len(df_proyectos[(df_proyectos["ocde_1"] == "CIENCIAS SOCIALES") & (df_proyectos["año"] == 2023)])
-# ciencias_sociales_2024 = len(df_proyectos[(df_proyectos["ocde_1"] == "CIENCIAS SOCIALES") & (df_proyectos["año"] == 2024)])
-
-# #ingenieria y tecnologia del 2023
-# ingenieria_tecnologia_2023 = len(df_proyectos[(df_proyectos["ocde_1"] == "INGENIERÍA Y TECNOLOGÍA") & (df_proyectos["año"] == 2023)])
-# ingenieria_tecnologia_2024 = len(df_proyectos[(df_proyectos["ocde_1"] == "INGENIERÍA Y TECNOLOGÍA") & (df_proyectos["año"] == 2024)])
-
-# #humanidades del 2023
-# humanidades_2023 = len(df_proyectos[(df_proyectos["ocde_1"] == "HUMANIDADES") & (df_proyectos["año"] == 2023)])
-# humanidades_2024 = len(df_proyectos[(df_proyectos["ocde_1"] == "HUMANIDADES") & (df_proyectos["año"] == 2024)])
-
-# #medicina y ciencias de la salud del 2023
-# medicina_salud_2023 = len(df_proyectos[(df_proyectos["ocde_1"] == "MEDICINA Y CIENCIAS DE LA SALUD") & (df_proyectos["año"] == 2023)])
-# medicina_salud_2024 = len(df_proyectos[(df_proyectos["ocde_1"] == "MEDICINA Y CIENCIAS DE LA SALUD") & (df_proyectos["año"] == 2024)])
-
 
 class State(rx.State):
     """The app state."""
+
+    image_urls: list[dict[str, str]] = [
+         {
+            "src": "https://generoenciencia.ufro.cl/wp-content/uploads/2025/09/banner-adj-redes-mujeres-ciencia.webp",
+            "link": "https://vrip.ufro.cl/investigacion-2/investigadoras-ufro-lideraran-proyectos-para-fortalecer-la-cooperacion-cientifica-y-abrir-nuevas-oportunidades-para-mujeres-en-ciencia",
+        },
+        {
+            "src": "https://generoenciencia.ufro.cl/wp-content/uploads/2025/09/banner-ecocrearte.webp",
+            "link": "https://generoenciencia.ufro.cl/2025/09/08/investigadoras-ufro-impulsan-iniciativa-para-promover-la-reinsercion-sociolaboral-de-mujeres-privadas-de-libertad-en-la-araucania",
+        },
+        {
+            "src": "https://generoenciencia.ufro.cl/wp-content/uploads/2025/08/banner-taller-branding.webp",
+            "link": "https://vrip.ufro.cl/investigacion-2/academicas-ufro-fortalecen-liderazgo-y-comunicacion-cientifica-en-jornada-organizada-por-ines-de-genero",
+        },
+        {
+            "src": "https://generoenciencia.ufro.cl/wp-content/uploads/2025/08/banner-encuentro-academicas.webp",
+            "link": "https://vrip.ufro.cl/investigacion-2/mujeres-lideres-en-ciencia-innovacion-y-emprendimiento-protagonizaran-el-encuentro-red-de-academicas-ufro/",
+        },
+    ]
+    current_index: int = 0
 
     proyectos: list[Proyectos] = []
     investigadores: list[Investigador] = []
@@ -77,7 +43,9 @@ class State(rx.State):
     grid_data: list[dict] = []   
     grid_data2: list[dict] = []
 
-    search_value: str = ""
+    search_value: str = "" #original
+    search_value_pub: str = ""
+    search_value_proy: str = ""
     search_value_card: str = ""
     sort_value: str = ""
     sort_reverse: bool = False
@@ -110,6 +78,27 @@ class State(rx.State):
     selected_area: str = ""
 
     selected_area_temp: str = ""
+
+
+    @rx.event
+    def next_image(self):
+        """Go to the next image in the carousel."""
+        self.current_index = (self.current_index + 1) % len(self.image_urls)
+
+    @rx.event
+    def prev_image(self):
+        """Go to the previous image in the carousel."""
+        self.current_index = (self.current_index - 1 + len(self.image_urls)) % len(
+            self.image_urls
+        )
+    
+    @rx.event(background=True)
+    async def start_autoscroll(self):
+        """Start the autoscroll background task."""
+        while True:
+            await asyncio.sleep(8)
+            async with self:
+                self.current_index = (self.current_index + 1) % len(self.image_urls)
 
     @rx.event
     def add_area(self, area: str):
@@ -277,8 +266,8 @@ class State(rx.State):
     @rx.var
     def filtered_sorted_proyectos(self) -> list[Proyectos]:
         proyectos = self.proyectos
-        if self.search_value:
-            search_value = self.search_value.lower()
+        if self.search_value_proy:
+            search_value = self.search_value_proy.lower()
             proyectos = [
                 proyecto
                 for proyecto in proyectos
@@ -296,8 +285,8 @@ class State(rx.State):
     @rx.var
     def filtered_sorted_pub(self) -> list[Publicaciones]:
         publicaciones = self.publicaciones
-        if self.search_value:
-            search_value = self.search_value.lower()
+        if self.search_value_pub:
+            search_value = self.search_value_pub.lower()
             publicaciones = [
                 publicacion
                 for publicacion in publicaciones

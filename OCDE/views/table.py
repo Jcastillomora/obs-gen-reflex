@@ -11,6 +11,7 @@ def _header_cell(text: str, icon: str) -> rx.Component:
             rx.text(text, size="3"),
             align="center",
             spacing="2",
+            class_name="text-indigo-900 font-semibold",
         ),
     )
 
@@ -18,13 +19,13 @@ def _header_cell(text: str, icon: str) -> rx.Component:
 def _show_player(proyectos: Proyectos, index: int) -> rx.Component:
     bg_color = rx.cond(
         index % 2 == 0,
-        rx.color("gray", 1),
-        rx.color("accent", 2),
+        rx.color("white", 11),
+        rx.color("indigo", 12),
     )
     hover_color = rx.cond(
         index % 2 == 0,
-        rx.color("gray", 3),
-        rx.color("accent", 3),
+        rx.color("olive", 11),
+        rx.color("olive", 10),
     )
     return rx.table.row(
         rx.table.row_header_cell(proyectos.codigo),
@@ -36,7 +37,7 @@ def _show_player(proyectos: Proyectos, index: int) -> rx.Component:
         style={"_hover": {"bg": hover_color}, "bg": bg_color},
         align="center",
         size="2",
-        class_name="text-sm",
+        class_name="bg-white text-indigo-900 text-sm",
     )
 
 
@@ -44,13 +45,13 @@ def _show_pub(publicaciones: Publicaciones, index: int) -> rx.Component:
 
     bg_color = rx.cond(
         index % 2 == 0,
-        rx.color("gray", 1),
-        rx.color("accent", 2),
+        rx.color("white", 11),
+        rx.color("indigo", 12),
     )
     hover_color = rx.cond(
         index % 2 == 0,
-        rx.color("gray", 3),
-        rx.color("accent", 3),
+        rx.color("olive", 11),
+        rx.color("olive", 10),
     )
     return rx.table.row(
         rx.table.row_header_cell(publicaciones.año),
@@ -61,7 +62,7 @@ def _show_pub(publicaciones: Publicaciones, index: int) -> rx.Component:
             size="1",
             color_scheme="indigo", 
             radius="full",
-            variant="soft",
+            variant="solid",
             on_click=rx.redirect(publicaciones.url, is_external=True),
             )
         ),
@@ -78,63 +79,64 @@ def _show_pub(publicaciones: Publicaciones, index: int) -> rx.Component:
         style={"_hover": {"bg": hover_color}, "bg": bg_color},
         align="center",
         size="2",
-        class_name="text-sm",
+        class_name="bg-white text-indigo-900 text-sm",
     )
 
 
-def _pagination_view() -> rx.Component:
-    return (
-        rx.hstack(
-            rx.text(
-                "Página ",
-                rx.code(State.page_number),
-                f" de {State.total_pages}",
-                justify="end",
-            ),
-            rx.hstack(
-                rx.icon_button(
-                    rx.icon("chevrons-left", size=18),
-                    on_click=State.first_page,
-                    opacity=rx.cond(State.page_number == 1, 0.6, 1),
-                    color_scheme=rx.cond(State.page_number == 1, "gray", "accent"),
-                    variant="soft",
-                ),
-                rx.icon_button(
-                    rx.icon("chevron-left", size=18),
-                    on_click=State.prev_page,
-                    opacity=rx.cond(State.page_number == 1, 0.6, 1),
-                    color_scheme=rx.cond(State.page_number == 1, "gray", "accent"),
-                    variant="soft",
-                ),
-                rx.icon_button(
-                    rx.icon("chevron-right", size=18),
-                    on_click=State.next_page,
-                    opacity=rx.cond(State.page_number == State.total_pages, 0.6, 1),
-                    color_scheme=rx.cond(
-                        State.page_number == State.total_pages, "gray", "accent"
-                    ),
-                    variant="soft",
-                ),
-                rx.icon_button(
-                    rx.icon("chevrons-right", size=18),
-                    on_click=State.last_page,
-                    opacity=rx.cond(State.page_number == State.total_pages, 0.6, 1),
-                    color_scheme=rx.cond(
-                        State.page_number == State.total_pages, "gray", "accent"
-                    ),
-                    variant="soft",
-                ),
-                align="center",
-                spacing="2",
-                justify="end",
-            ),
-            spacing="5",
-            margin_top="1em",
-            align="center",
-            width="100%",
-            justify="end",
-        ),
-    )
+# def _pagination_view() -> rx.Component:
+#     return (
+#         rx.hstack(
+#             rx.text(
+#                 "Página ",
+#                 rx.code(State.page_number),
+#                 f" de {State.total_pages}",
+#                 justify="end",
+#                 class_name="text-gray-700",
+#             ),
+#             rx.hstack(
+#                 rx.icon_button(
+#                     rx.icon("chevrons-left", size=18),
+#                     on_click=State.first_page,
+#                     opacity=rx.cond(State.page_number == 1, 0.6, 1),
+#                     color_scheme=rx.cond(State.page_number == 1, "gray", "accent"),
+#                     variant="solid",
+#                 ),
+#                 rx.icon_button(
+#                     rx.icon("chevron-left", size=18),
+#                     on_click=State.prev_page,
+#                     opacity=rx.cond(State.page_number == 1, 0.6, 1),
+#                     color_scheme=rx.cond(State.page_number == 1, "gray", "accent"),
+#                     variant="solid",
+#                 ),
+#                 rx.icon_button(
+#                     rx.icon("chevron-right", size=18),
+#                     on_click=State.next_page,
+#                     opacity=rx.cond(State.page_number == State.total_pages, 0.6, 1),
+#                     color_scheme=rx.cond(
+#                         State.page_number == State.total_pages, "gray", "accent"
+#                     ),
+#                     variant="solid",
+#                 ),
+#                 rx.icon_button(
+#                     rx.icon("chevrons-right", size=18),
+#                     on_click=State.last_page,
+#                     opacity=rx.cond(State.page_number == State.total_pages, 0.6, 1),
+#                     color_scheme=rx.cond(
+#                         State.page_number == State.total_pages, "gray", "accent"
+#                     ),
+#                     variant="solid",
+#                 ),
+#                 align="center",
+#                 spacing="2",
+#                 justify="end",
+#             ),
+#             spacing="5",
+#             margin_top="1em",
+#             align="center",
+#             width="100%",
+#             justify="end",
+#         ),
+#     )
 
 
 class EventArgState(rx.State):
@@ -155,17 +157,17 @@ def main_table() -> rx.Component:
                     rx.icon("x"),
                     justify="end",
                     cursor="pointer",
-                    on_click=State.setvar("search_value", ""),
-                    display=rx.cond(State.search_value, "flex", "none"),
+                    on_click=State.setvar("search_value_proy", ""),
+                    display=rx.cond(State.search_value_proy, "flex", "none"),
                 ),
-                value=State.search_value,
+                value=State.search_value_proy,
                 placeholder="Buscar aquí...",
                 size="3",
                 max_width="250px",
                 width="100%",
                 variant="surface",
                 color_scheme="gray",
-                on_change=State.set_search_value,
+                on_change=State.set_search_value_proy,
             ),
             align="center",
             justify="end",
@@ -184,6 +186,7 @@ def main_table() -> rx.Component:
                     _header_cell("Tipo proyecto", "filter"),
                     _header_cell("Rol", "building"),
                 ),
+                class_name="w-full bg-indigo-400",
             ),
             rx.table.body(
                 rx.foreach(
@@ -196,7 +199,7 @@ def main_table() -> rx.Component:
             size="2",
             width="100%",
         ),
-        _pagination_view(),
+        # _pagination_view(),
     )
 
 #Tabla de publicaciones
@@ -209,17 +212,17 @@ def pub_table() -> rx.Component:
                     rx.icon("x"),
                     justify="end",
                     cursor="pointer",
-                    on_click=State.setvar("search_value", ""),
-                    display=rx.cond(State.search_value, "flex", "none"),
+                    on_click=State.setvar("search_value_pub", ""),
+                    display=rx.cond(State.search_value_pub, "flex", "none"),
                 ),
-                value=State.search_value,
+                value=State.search_value_pub,
                 placeholder="Buscar aquí...",
                 size="3",
                 max_width="250px",
                 width="100%",
                 variant="surface",
-                color_scheme="gray",
-                on_change=State.set_search_value,
+                color_scheme="indigo",
+                on_change=State.set_search_value_pub,
             ),
             align="center",
             justify="end",
@@ -237,6 +240,7 @@ def pub_table() -> rx.Component:
                     _header_cell("Link", "external-link"),
                     _header_cell("Altmetric", "badge"),
                 ),
+                class_name="w-full bg-indigo-400",
             ),
             rx.table.body(
                 rx.foreach(
@@ -247,8 +251,8 @@ def pub_table() -> rx.Component:
             ),
             variant="surface",
             size="2",
-            width="100%",
+            class_name="w-full",
         ),
-        _pagination_view(),
+        # _pagination_view(),
         
     )

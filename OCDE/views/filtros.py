@@ -7,16 +7,18 @@ chip_props = {
     "variant": "surface",
     "size": "3",
     "cursor": "pointer",
-    "style": {"_hover": {"opacity": 0.75}},
+    # "style": {"_hover": {"opacity": 0.75}},
 }
 
 def selected_area_chip(area: str) -> rx.Component:
     return rx.badge(
         area,
         rx.icon("circle-x", size=18),
-        color_scheme="green",
+        color_scheme="indigo",
         **chip_props,
         on_click=State.remove_area(area),
+        class_name="bg-white",
+        
     )
 
 def unselected_area_chip(area: str) -> rx.Component:
@@ -26,7 +28,7 @@ def unselected_area_chip(area: str) -> rx.Component:
         rx.badge(
             area,
             rx.icon("circle-plus", size=18),
-            color_scheme="gray",
+            color_scheme="indigo",
             **chip_props,
             on_click=State.add_area(area),
         ),
@@ -38,7 +40,8 @@ def areas_selector() -> rx.Component:
             rx.heading(
                 "Filtrar por Disciplina OCDE nivel 2"
                 + f" ({State.selected_areas.length()})",
-                size="4",
+                # size="4",
+                class_name="text-sm sm:text-lg text-gray-700 font-semibold p-2",
             ),
             rx.hstack(
                 # rx.button(
@@ -60,9 +63,22 @@ def areas_selector() -> rx.Component:
                     cursor="pointer",
                 ),
                 spacing="2",
+                class_name="px-2",
             ),
             justify="between",
             width="100%",
+        ),
+        rx.callout(
+            "Pronto actualizaremos publicaciones, proyectos y perfiles de investigadoras.",
+            icon="info",
+            color_scheme="tomato",
+            # role="alert",
+        ),
+        rx.text(
+            """Este espacio reúne a las investigadoras de la Universidad de La Frontera, destacando su trayectoria académica y científica a través de sus proyectos entre 2018-2024 y publicaciones entre 2018-2023.
+            El buscador permite explorar y filtrar perfiles según líneas de investigación, organizadas por disciplina OCDE nivel 2, facilitando la búsqueda de experticia específica en diversas áreas del conocimiento.
+            """,
+            class_name="text-sm sm:text-lg text-indigo-900 p-2",
         ),
         # nuevo
         rx.hstack(
@@ -72,7 +88,9 @@ def areas_selector() -> rx.Component:
                 placeholder="Selecciona un área",
                 size="2",
                 color_scheme="indigo",
-                style={"minWidth": "300px"}
+                variant="classic",
+                style={"minWidth": "300px"},
+                class_name="font-semibold",
             ),
             rx.button(
                 rx.icon("plus", size=16),
@@ -99,8 +117,8 @@ def areas_selector() -> rx.Component:
         #     spacing="2",
         #     justify_content="start",
         # ),
-        spacing="4",
+        # spacing="4",
         align_items="center",
         width="100%",
-        class_name="bg-transparent shadow-lg p-10",
+        class_name="bg-white shadow-lg lg:px-50 p-5 py-5",
     )

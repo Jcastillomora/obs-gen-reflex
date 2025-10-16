@@ -3,21 +3,27 @@ from typing import List, Dict
 
 def repo_menu() -> rx.Component:
     return rx.accordion.root(
-    rx.accordion.item(
-        header=rx.heading("Reportes"),
-        content=reporte_componente,
-        value="item1",
-    ),
-    rx.accordion.item(
-        header=rx.heading("Documentos"),
-        content=documentos_componente,
-        value="item2",
-    ),
-    collapsible=True,
-    default_value="item2",
-    width="100%",
-    type="multiple",
-    variant="surface",
+        rx.accordion.item(
+            header=rx.text.kbd("Reportes", size="7", class_name="text-indigo-600"),
+            content=reporte_componente,
+            value="item1",
+            class_name="bg-white",
+            color_scheme="indigo",
+        ),
+        rx.accordion.item(
+            header=rx.text.kbd("Documentos", size="7", class_name="text-indigo-600"),
+            content=documentos_componente,
+            value="item2",
+            class_name="bg-white",
+            color_scheme="indigo",
+        ),
+        collapsible=True,
+        default_value="item2",
+        type="multiple",
+        variant="surface",
+        color_scheme="indigo",
+        class_name="w-full",
+        show_dividers=True,
 )
 
 def contenido_reportes(reportes: List[Dict[str, str]]) -> rx.Component:
@@ -33,15 +39,16 @@ def contenido_reportes(reportes: List[Dict[str, str]]) -> rx.Component:
     for reporte in reportes:
         secciones.extend(
             [
-                rx.heading(reporte["heading_text"], weight="light"),
-                rx.text(reporte["body_text"]),
+                rx.heading(reporte["heading_text"], weight="light", class_name="text-indigo-600"),
+                rx.text(reporte["body_text"], class_name="text-indigo-400"),
                 rx.link(
-                    rx.button("Descargar", class_name="w-full sm:w-auto"),
+                    rx.button("Descargar", class_name=""),
                     href=reporte["download_url"],
                     is_external=True,
                     download=True,
+                    aling="center",
                 ),
-                rx.separator(),
+                rx.separator(class_name="bg-gray-300 my-2"),
             ]
         )
 
@@ -49,7 +56,7 @@ def contenido_reportes(reportes: List[Dict[str, str]]) -> rx.Component:
         *secciones,  # Expandimos la lista de componentes
         spacing="2",
         flex_direction="column",
-        width="100%",
+        class_name="w-full",
     )
 
 reportes_data = [
