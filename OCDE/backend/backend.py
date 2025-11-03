@@ -9,7 +9,8 @@ from typing import Dict, List, Optional, TypedDict
 
 proyectos_csv = "proyectos_total_ocde1_.csv"
 
-academicas_csv = "academicas_clean.csv"
+# academicas_csv = "academicas_clean.csv"
+academicas_csv = "academicas.xlsx" 
 
 publicaciones_csv = "publicaciones___.csv"
 
@@ -160,6 +161,22 @@ class State(rx.State):
     def add_selected_area(self):
         if self.selected_area_temp and self.selected_area_temp not in self.selected_areas:
             self.selected_areas.append(self.selected_area_temp)
+    
+    @rx.var
+    def get_initials(self) -> str:
+        if self.current_investigator_is_none or not self.current_investigator.name:
+            return "??"
+        
+        name_parts = self.current_investigator.name.split()
+        
+        if len(name_parts) >= 2:
+            # Nombre + apellido1 (y posiblemente apellido2): toma primera letra del nombre y primera del apellido1
+            return f"{name_parts[0][0]}{name_parts[1][0]}".upper()
+        elif len(name_parts) == 1:
+            # Solo nombre: toma primera letra
+            return name_parts[0][0].upper()
+        else:
+            return "??"
 
     #25/01/2025
     @rx.event
@@ -210,7 +227,8 @@ class State(rx.State):
     #Cargar academicas
     def load_academicas(self):
         # df = pd.read_csv(academicas_csv, encoding="ISO-8859-1")
-        df = pd.read_csv(academicas_csv, delimiter="," ,encoding="ISO-8859-1")
+        # df = pd.read_csv(academicas_csv, delimiter="," ,encoding="ISO-8859-1")
+        df = pd.read_excel(academicas_csv)
         df = df.replace("", None)
         df["id"] = pd.to_numeric(df["id"], errors="coerce")  # Convierte números y pone NaN en errores
         df = df.dropna(subset=["id"])  # Elimina filas con NaN en "id"
@@ -222,10 +240,10 @@ class State(rx.State):
         df["grado_mayor"] = df["grado_mayor"].replace("", "INVESTIGADORA")
         # df["grado_mayor"] = df["grado_mayor"].fillna("")
         # df["unidad_contrato"] = df["unidad_contrato"].fillna("")
-        # df["ocde_2"] = df["ocde_2"].astype(str).apply(lambda x: " ,".join(x.split("#")) if x and x != "nan" else [])
+        df["ocde_2"] = df["ocde_2"].astype(str).apply(lambda x: " ,".join(x.split("#")) if x and x != "nan" else [])
         # df["ocde_2"] = df["ocde_2"].astype(str).apply(lambda x: x.split("#") if x and x != "nan" else [])
 
-        df["ocde_2"] = df["ocde_2"].astype(str).apply(lambda x: ", ".join(x.split("#")) if x and x != "nan" else "")
+        # df["ocde_2"] = df["ocde_2"].astype(str).apply(lambda x: ", ".join(x.split("#")) if x and x != "nan" else "")
 
         # df["ocde_2"] = (
         #     df["ocde_2"]
@@ -364,8 +382,8 @@ class State(rx.State):
 
         df = df[df["rut_ir"] == self.current_investigator.rut_ir]
         # df["ocde_1"] = df["ocde_1"].fillna("SIN INFO")
-        # df["ocde_2"] = df["ocde_2"].fillna("SIN INFO")
-        df["ocde_1"] = df["ocde_1"].fillna("Sin Info")
+        df["ocde_2"] = df["ocde_2"].fillna("SIN INFO")
+        # df["ocde_1"] = df["ocde_1"].fillna("Sin Info")
         # df["rol"] = df["rol"].astype(str).str.replace(";", "", regex=False).str.strip()
         # df["rol"] = df["rol"].replace("", "Sin rol")
         df["rol"] = df["rol"].fillna("Sin Info")

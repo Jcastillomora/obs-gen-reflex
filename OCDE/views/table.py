@@ -17,21 +17,23 @@ def _header_cell(text: str, icon: str) -> rx.Component:
 
 
 def _show_player(proyectos: Proyectos, index: int) -> rx.Component:
-    bg_color = rx.cond(
-        index % 2 == 0,
-        rx.color("white", 11),
-        rx.color("indigo", 12),
-    )
-    hover_color = rx.cond(
-        index % 2 == 0,
-        rx.color("olive", 11),
-        rx.color("olive", 10),
-    )
+    bg_color ="white",
+    hover_color ="gray.100",
+    # bg_color = rx.cond(
+    #     index % 2 == 0,
+    #     rx.color("white", 11),
+    #     rx.color("indigo", 12),
+    # )
+    # hover_color = rx.cond(
+    #     index % 2 == 0,
+    #     rx.color("olive", 11),
+    #     rx.color("olive", 10),
+    # )
     return rx.table.row(
         rx.table.row_header_cell(proyectos.codigo),
         rx.table.cell(proyectos.titulo),
         rx.table.cell(proyectos.año),
-        rx.table.cell(proyectos.ocde_1),
+        rx.table.cell(proyectos.ocde_2),
         rx.table.cell(proyectos.tipo_proyecto),
         rx.table.cell(proyectos.rol),
         style={"_hover": {"bg": hover_color}, "bg": bg_color},
@@ -42,17 +44,18 @@ def _show_player(proyectos: Proyectos, index: int) -> rx.Component:
 
 
 def _show_pub(publicaciones: Publicaciones, index: int) -> rx.Component:
-
-    bg_color = rx.cond(
-        index % 2 == 0,
-        rx.color("white", 11),
-        rx.color("indigo", 12),
-    )
-    hover_color = rx.cond(
-        index % 2 == 0,
-        rx.color("olive", 11),
-        rx.color("olive", 10),
-    )
+    bg_color ="white",
+    hover_color ="gray.100",
+    # bg_color = rx.cond(
+    #     index % 2 == 0,
+    #     rx.color("white", 11),
+    #     rx.color("indigo", 12),
+    # )
+    # hover_color = rx.cond(
+    #     index % 2 == 0,
+    #     rx.color("olive", 11),
+    #     rx.color("olive", 10),
+    # )
     return rx.table.row(
         rx.table.row_header_cell(publicaciones.año),
         rx.table.cell(publicaciones.titulo),

@@ -241,7 +241,7 @@ def academicas():
     )
 
 # Función para la tarjeta - usando el mismo patrón que tu código
-def investigador_card(inv):
+def investigador_card(inv, on_load=[State.load_academicas, State.load_entries_pub, State.load_entries]):
     return rx.card(
         rx.vstack(
             # Parte Superior
@@ -343,7 +343,8 @@ def investigator_page():
                     rx.hstack(
                         rx.avatar(
                             size="9",
-                            fallback=State.current_investigator.name[0],
+                            # fallback=State.current_investigator.name[0],
+                            fallback=State.get_initials,
                             variant="solid",
                             radius="full",
                             color_scheme="iris",
@@ -452,19 +453,19 @@ def investigator_page():
                                                     item.strip()[:18] + "...",
                                                     item.strip()
                                                 ),
-                                                size="3",
+                                                size="2",
                                                 variant="solid",
                                                 color_scheme="iris",
                                                 high_contrast=False,
-                                                class_name="text-xs font-mono text-center"
+                                                class_name="text-xs font-mono text-center whitespace-nowrap"
                                             ),
-                                            content=item,
+                                            content=item.strip(),
                                             class_name="bg-[#a280f6] font-mono text-center"
                                         )
                                     ),
                                     columns=Breakpoints(initial="1", sm="2", md="3", lg="3", xl="3"),
                                     spacing="2",
-                                    class_name="w-full py-5"
+                                    class_name="w-full"
                                 ),
                                 rx.box(
                                     rx.text("No hay datos disponibles", class_name="text-white p-2"),
@@ -581,8 +582,8 @@ def investigator_page():
                                             rx.badge(
                                                 # Usamos operaciones Var compatibles
                                                 rx.cond(
-                                                    item.strip().length() > 14,
-                                                    item.strip()[:14] + "...",
+                                                    item.strip().length() > 16,
+                                                    item.strip()[:16] + "...",
                                                     item.strip()
                                                 ),
                                                 size="3",
@@ -591,7 +592,7 @@ def investigator_page():
                                                 high_contrast=False,
                                                 class_name="text-xs font-mono"
                                             ),
-                                            content=item,
+                                            content=item.strip(),
                                             class_name="bg-[#a280f6] font-mono"
                                         )
                                     ),
@@ -620,7 +621,7 @@ def investigator_page():
                                 class_name="items-center justify-center gap-2"
                             ),
                             spacing="2",
-                            class_name="w-full rounded-lg mt-4 p-5 bg-transparent/75",
+                            class_name="w-full rounded-lg mt-4 p-5 bg-gray-800/90",
                             # align="end",
                             # class_name="px-80"
                         ),

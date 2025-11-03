@@ -39,7 +39,6 @@ class Proyectos(rx.Base):
     codigo: str
     titulo: str
     año: str
-    ocde_1: str
     ocde_2: str
     tipo_proyecto: str
     investigador_responsable: str
