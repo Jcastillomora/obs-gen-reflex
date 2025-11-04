@@ -162,6 +162,7 @@ class State(rx.State):
         if self.selected_area_temp and self.selected_area_temp not in self.selected_areas:
             self.selected_areas.append(self.selected_area_temp)
     
+    #variable para iniciales en avatar
     @rx.var
     def get_initials(self) -> str:
         if self.current_investigator_is_none or not self.current_investigator.name:
