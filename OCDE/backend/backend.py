@@ -58,7 +58,7 @@ class State(rx.State):
     total_items: int = 0
     total_investigadores: int = 0
     offset: int = 0
-    limit: int = 24  # Number of rows per page
+    limit: int = 100  # Number of rows per page
 
     name: str = ""
     institucion: str = ""

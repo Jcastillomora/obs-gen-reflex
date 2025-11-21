@@ -40,9 +40,7 @@ def _show_pub(publicaciones: Publicaciones, index: int) -> rx.Component:
         rx.table.cell(rx.button(
             "publicación", 
             size="1",
-            color_scheme="indigo", 
             radius="full",
-            variant="solid",
             on_click=rx.redirect(publicaciones.url, is_external=True),
             )
         ),
@@ -116,7 +114,6 @@ def _show_pub(publicaciones: Publicaciones, index: int) -> rx.Component:
 #             justify="end",
 #         ),
 #     )
-
 
 class EventArgState(rx.State):
     form_data: dict = {}
