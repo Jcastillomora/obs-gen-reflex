@@ -34,8 +34,6 @@ class Publicaciones(rx.Base):
 
 # modelo de la base de datos para los proyectos
 class Proyectos(rx.Base):
-    """Proyectos class."""
-
     codigo: str
     titulo: str
     año: str
@@ -44,4 +42,3 @@ class Proyectos(rx.Base):
     investigador_responsable: str
     rut_ir: str
     rol: str
-    

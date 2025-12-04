@@ -7,7 +7,8 @@ from .models import Investigador, Publicaciones, Proyectos
 from typing import Dict, List, Optional, TypedDict
 
 
-proyectos_csv = "proyectos_total_ocde1_.csv"
+# proyectos_csv = "proyectos_total_ocde1_.csv"
+proyectos_csv = "proyectos_total.xlsx"
 
 # academicas_csv = "academicas_clean.csv"
 academicas_csv = "academicas.xlsx" 
@@ -58,7 +59,7 @@ class State(rx.State):
     total_items: int = 0
     total_investigadores: int = 0
     offset: int = 0
-    limit: int = 100  # Number of rows per page
+    limit: int = 24  # Number of rows per page
 
     name: str = ""
     institucion: str = ""
@@ -183,7 +184,8 @@ class State(rx.State):
     @rx.event
     def load_grid_data(self):
         if self.current_investigator:
-            df_proyectos = pd.read_csv(proyectos_csv, encoding="utf-8-sig")
+            # df_proyectos = pd.read_csv(proyectos_csv, encoding="utf-8-sig")
+            df_proyectos = pd.read_excel(proyectos_csv)
             df_publicaciones = pd.read_csv(publicaciones_csv, encoding="utf-8-sig")
             # Filter your dataframe based on current_investigator
             filtered_data = df_proyectos[df_proyectos["rut_ir"] == self.current_investigator.rut_ir]
@@ -364,7 +366,8 @@ class State(rx.State):
             return  # Salir de la función si no hay investigador seleccionado
         # if self.current_investigator is None:
         #     return
-        df = pd.read_csv(proyectos_csv, encoding="utf-8-sig")
+        # df = pd.read_csv(proyectos_csv, encoding="utf-8-sig")
+        df = pd.read_excel(proyectos_csv)
         df = df.replace("", np.nan)  # Replace empty strings with NaN
         df.columns = df.columns.str.strip()
 

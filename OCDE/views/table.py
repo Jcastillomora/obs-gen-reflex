@@ -60,60 +60,61 @@ def _show_pub(publicaciones: Publicaciones, index: int) -> rx.Component:
     )
 
 
-# def _pagination_view() -> rx.Component:
-#     return (
-#         rx.hstack(
-#             rx.text(
-#                 "Página ",
-#                 rx.code(State.page_number),
-#                 f" de {State.total_pages}",
-#                 justify="end",
-#                 class_name="text-gray-700",
-#             ),
-#             rx.hstack(
-#                 rx.icon_button(
-#                     rx.icon("chevrons-left", size=18),
-#                     on_click=State.first_page,
-#                     opacity=rx.cond(State.page_number == 1, 0.6, 1),
-#                     color_scheme=rx.cond(State.page_number == 1, "gray", "accent"),
-#                     variant="solid",
-#                 ),
-#                 rx.icon_button(
-#                     rx.icon("chevron-left", size=18),
-#                     on_click=State.prev_page,
-#                     opacity=rx.cond(State.page_number == 1, 0.6, 1),
-#                     color_scheme=rx.cond(State.page_number == 1, "gray", "accent"),
-#                     variant="solid",
-#                 ),
-#                 rx.icon_button(
-#                     rx.icon("chevron-right", size=18),
-#                     on_click=State.next_page,
-#                     opacity=rx.cond(State.page_number == State.total_pages, 0.6, 1),
-#                     color_scheme=rx.cond(
-#                         State.page_number == State.total_pages, "gray", "accent"
-#                     ),
-#                     variant="solid",
-#                 ),
-#                 rx.icon_button(
-#                     rx.icon("chevrons-right", size=18),
-#                     on_click=State.last_page,
-#                     opacity=rx.cond(State.page_number == State.total_pages, 0.6, 1),
-#                     color_scheme=rx.cond(
-#                         State.page_number == State.total_pages, "gray", "accent"
-#                     ),
-#                     variant="solid",
-#                 ),
-#                 align="center",
-#                 spacing="2",
-#                 justify="end",
-#             ),
-#             spacing="5",
-#             margin_top="1em",
-#             align="center",
-#             width="100%",
-#             justify="end",
-#         ),
-#     )
+def _pagination_view() -> rx.Component:
+    return (
+        rx.hstack(
+            rx.text(
+                "Página ",
+                # rx.code(State.page_number),
+                State.page_number,
+                f" de {State.total_pages}",
+                justify="end",
+                class_name="text-gray-700",
+            ),
+            rx.hstack(
+                rx.icon_button(
+                    rx.icon("chevrons-left", size=18),
+                    on_click=State.first_page,
+                    opacity=rx.cond(State.page_number == 1, 0.6, 1),
+                    color_scheme=rx.cond(State.page_number == 1, "gray", "accent"),
+                    variant="solid",
+                ),
+                rx.icon_button(
+                    rx.icon("chevron-left", size=18),
+                    on_click=State.prev_page,
+                    opacity=rx.cond(State.page_number == 1, 0.6, 1),
+                    color_scheme=rx.cond(State.page_number == 1, "gray", "accent"),
+                    variant="solid",
+                ),
+                rx.icon_button(
+                    rx.icon("chevron-right", size=18),
+                    on_click=State.next_page,
+                    opacity=rx.cond(State.page_number == State.total_pages, 0.6, 1),
+                    color_scheme=rx.cond(
+                        State.page_number == State.total_pages, "gray", "accent"
+                    ),
+                    variant="solid",
+                ),
+                rx.icon_button(
+                    rx.icon("chevrons-right", size=18),
+                    on_click=State.last_page,
+                    opacity=rx.cond(State.page_number == State.total_pages, 0.6, 1),
+                    color_scheme=rx.cond(
+                        State.page_number == State.total_pages, "gray", "accent"
+                    ),
+                    variant="solid",
+                ),
+                align="center",
+                spacing="2",
+                justify="end",
+            ),
+            spacing="5",
+            margin_top="1em",
+            align="center",
+            width="100%",
+            justify="end",
+        ),
+    )
 
 class EventArgState(rx.State):
     form_data: dict = {}
@@ -126,32 +127,32 @@ class EventArgState(rx.State):
 #Tabla de proyectos
 def main_table() -> rx.Component:
     return rx.fragment(
-        rx.flex(
-            rx.input(
-                rx.input.slot(rx.icon("search")),
-                rx.input.slot(
-                    rx.icon("x"),
-                    justify="end",
-                    cursor="pointer",
-                    on_click=State.setvar("search_value_proy", ""),
-                    display=rx.cond(State.search_value_proy, "flex", "none"),
-                ),
-                value=State.search_value_proy,
-                placeholder="Buscar aquí...",
-                size="3",
-                max_width="250px",
-                width="100%",
-                variant="surface",
-                color_scheme="gray",
-                on_change=State.set_search_value_proy,
-            ),
-            align="center",
-            justify="end",
-            spacing="3",
-            wrap="wrap",
-            width="100%",
-            padding_bottom="1em",
-        ),
+        # rx.flex(
+        #     rx.input(
+        #         rx.input.slot(rx.icon("search")),
+        #         rx.input.slot(
+        #             rx.icon("x"),
+        #             justify="end",
+        #             cursor="pointer",
+        #             on_click=State.setvar("search_value_proy", ""),
+        #             display=rx.cond(State.search_value_proy, "flex", "none"),
+        #         ),
+        #         value=State.search_value_proy,
+        #         placeholder="Buscar aquí...",
+        #         size="3",
+        #         max_width="250px",
+        #         width="100%",
+        #         variant="surface",
+        #         color_scheme="gray",
+        #         on_change=State.set_search_value_proy,
+        #     ),
+        #     align="center",
+        #     justify="end",
+        #     spacing="3",
+        #     wrap="wrap",
+        #     width="100%",
+        #     padding_bottom="1em",
+        # ),
         rx.table.root(
             rx.table.header(
                 rx.table.row(
@@ -175,38 +176,38 @@ def main_table() -> rx.Component:
             size="2",
             width="100%",
         ),
-        # _pagination_view(),
+        _pagination_view(),
     )
 
 #Tabla de publicaciones
 def pub_table() -> rx.Component:
     return rx.fragment(
-        rx.flex(
-            rx.input(
-                rx.input.slot(rx.icon("search")),
-                rx.input.slot(
-                    rx.icon("x"),
-                    justify="end",
-                    cursor="pointer",
-                    on_click=State.setvar("search_value_pub", ""),
-                    display=rx.cond(State.search_value_pub, "flex", "none"),
-                ),
-                value=State.search_value_pub,
-                placeholder="Buscar aquí...",
-                size="3",
-                max_width="250px",
-                width="100%",
-                variant="surface",
-                color_scheme="indigo",
-                on_change=State.set_search_value_pub,
-            ),
-            align="center",
-            justify="end",
-            spacing="3",
-            wrap="wrap",
-            width="100%",
-            padding_bottom="1em",
-        ),
+        # rx.flex(
+        #     rx.input(
+        #         rx.input.slot(rx.icon("search")),
+        #         rx.input.slot(
+        #             rx.icon("x"),
+        #             justify="end",
+        #             cursor="pointer",
+        #             on_click=State.setvar("search_value_pub", ""),
+        #             display=rx.cond(State.search_value_pub, "flex", "none"),
+        #         ),
+        #         value=State.search_value_pub,
+        #         placeholder="Buscar aquí...",
+        #         size="3",
+        #         max_width="250px",
+        #         width="100%",
+        #         variant="surface",
+        #         color_scheme="indigo",
+        #         on_change=State.set_search_value_pub,
+        #     ),
+        #     align="center",
+        #     justify="end",
+        #     spacing="3",
+        #     wrap="wrap",
+        #     width="100%",
+        #     padding_bottom="1em",
+        # ),
         rx.table.root(
             rx.table.header(
                 rx.table.row(
@@ -229,6 +230,6 @@ def pub_table() -> rx.Component:
             size="2",
             class_name="w-full",
         ),
-        # _pagination_view(),
+        _pagination_view(),
         
     )
