@@ -13,7 +13,8 @@ proyectos_csv = "proyectos_total.xlsx"
 # academicas_csv = "academicas_clean.csv"
 academicas_csv = "academicas.xlsx" 
 
-publicaciones_csv = "publicaciones___.csv"
+# publicaciones_csv = "publicaciones___.csv"
+publicaciones_csv = "publicaciones_total.xlsx"
 
 
 class State(rx.State):
@@ -59,7 +60,7 @@ class State(rx.State):
     total_items: int = 0
     total_investigadores: int = 0
     offset: int = 0
-    limit: int = 24  # Number of rows per page
+    limit: int = 100  # Number of rows per page
 
     name: str = ""
     institucion: str = ""
@@ -186,7 +187,8 @@ class State(rx.State):
         if self.current_investigator:
             # df_proyectos = pd.read_csv(proyectos_csv, encoding="utf-8-sig")
             df_proyectos = pd.read_excel(proyectos_csv)
-            df_publicaciones = pd.read_csv(publicaciones_csv, encoding="utf-8-sig")
+            # df_publicaciones = pd.read_csv(publicaciones_csv, encoding="utf-8-sig")
+            df_publicaciones = pd.read_excel(publicaciones_csv)
             # Filter your dataframe based on current_investigator
             filtered_data = df_proyectos[df_proyectos["rut_ir"] == self.current_investigator.rut_ir]
 
@@ -403,7 +405,8 @@ class State(rx.State):
             print("Error: self.current_investigator es None. No se pueden cargar publicaciones.")
             return  # Salir de la función si no hay investigador seleccionado
 
-        df = pd.read_csv(publicaciones_csv, encoding="utf-8-sig")
+        # df = pd.read_csv(publicaciones_csv, encoding="utf-8-sig")
+        df = pd.read_excel(publicaciones_csv)
         df = df.replace("", np.nan)
         df = df[df["rut_ir"] == self.current_investigator.rut_ir]
         df["doi"] = df["doi"].astype(str)

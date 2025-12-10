@@ -75,7 +75,7 @@ def areas_selector() -> rx.Component:
             # role="alert",
         ),
         rx.text(
-            """Este espacio reúne a las investigadoras de la Universidad de La Frontera, destacando su trayectoria académica y científica a través de sus proyectos entre 2018-2024 y publicaciones entre 2018-2023.
+            """Este espacio reúne a las investigadoras de la Universidad de La Frontera, destacando su trayectoria académica y científica a través de sus proyectos entre 2018-2024, publicaciones WoS y Scopus entre 2018-2022.
             El buscador permite explorar y filtrar perfiles según líneas de investigación, organizadas por disciplina OCDE nivel 2, facilitando la búsqueda de experticia específica en diversas áreas del conocimiento.
             """,
             class_name="text-sm sm:text-lg text-indigo-900 p-2",
