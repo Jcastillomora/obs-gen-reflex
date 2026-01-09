@@ -61,11 +61,11 @@ def _show_pub(publicaciones: Publicaciones, index: int) -> rx.Component:
 
 
 def _pagination_view() -> rx.Component:
+    """Paginación para PROYECTOS"""
     return (
         rx.hstack(
             rx.text(
                 "Página ",
-                # rx.code(State.page_number),
                 State.page_number,
                 f" de {State.total_pages}",
                 justify="end",
@@ -115,6 +115,64 @@ def _pagination_view() -> rx.Component:
             justify="end",
         ),
     )
+
+
+def _pagination_view_pub() -> rx.Component:
+    """Paginación para PUBLICACIONES - usa variables separadas"""
+    return (
+        rx.hstack(
+            rx.text(
+                "Página ",
+                State.page_number_pub,
+                f" de {State.total_pages_pub}",
+                justify="end",
+                class_name="text-gray-700",
+            ),
+            rx.hstack(
+                rx.icon_button(
+                    rx.icon("chevrons-left", size=18),
+                    on_click=State.first_page_pub,
+                    opacity=rx.cond(State.page_number_pub == 1, 0.6, 1),
+                    color_scheme=rx.cond(State.page_number_pub == 1, "gray", "accent"),
+                    variant="solid",
+                ),
+                rx.icon_button(
+                    rx.icon("chevron-left", size=18),
+                    on_click=State.prev_page_pub,
+                    opacity=rx.cond(State.page_number_pub == 1, 0.6, 1),
+                    color_scheme=rx.cond(State.page_number_pub == 1, "gray", "accent"),
+                    variant="solid",
+                ),
+                rx.icon_button(
+                    rx.icon("chevron-right", size=18),
+                    on_click=State.next_page_pub,
+                    opacity=rx.cond(State.page_number_pub == State.total_pages_pub, 0.6, 1),
+                    color_scheme=rx.cond(
+                        State.page_number_pub == State.total_pages_pub, "gray", "accent"
+                    ),
+                    variant="solid",
+                ),
+                rx.icon_button(
+                    rx.icon("chevrons-right", size=18),
+                    on_click=State.last_page_pub,
+                    opacity=rx.cond(State.page_number_pub == State.total_pages_pub, 0.6, 1),
+                    color_scheme=rx.cond(
+                        State.page_number_pub == State.total_pages_pub, "gray", "accent"
+                    ),
+                    variant="solid",
+                ),
+                align="center",
+                spacing="2",
+                justify="end",
+            ),
+            spacing="5",
+            margin_top="1em",
+            align="center",
+            width="100%",
+            justify="end",
+        ),
+    )
+
 
 class EventArgState(rx.State):
     form_data: dict = {}
@@ -230,6 +288,6 @@ def pub_table() -> rx.Component:
             size="2",
             class_name="w-full",
         ),
-        _pagination_view(),
+        _pagination_view_pub(),  # <-- CAMBIADO: usar paginación específica para publicaciones
         
     )

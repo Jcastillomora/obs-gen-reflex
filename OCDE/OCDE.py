@@ -5,11 +5,20 @@ from .views.stats import stats_ui
 from .views.footer import footer
 from .views.searchbar import navbar_searchbar, navbar_searchbar_notsearch
 from .views.repositorio import repo_menu
-from .views.home import huincha, contenido_home, superbanner, footer_inst, navbar_main, banner_generator
+from .views.home import (
+    huincha,
+    contenido_home,
+    superbanner,
+    footer_inst,
+    navbar_main,
+    banner_generator,
+)
 from .views.carousel import carousel
 from .views.filtros import areas_selector
+from .components.chatbot import chatbot_assistant
 import reflex as rx
 from reflex.components.core.breakpoints import Breakpoints
+
 
 # Página de inicio
 @rx.page(route="/", title="Inicio")
@@ -29,6 +38,7 @@ def obs_inicio():
         align="stretch",
         class_name="w-full",
     )
+
 
 # Página de indicadores
 @rx.page(route="/obs_indicadores", title="Indicadores")
@@ -67,19 +77,20 @@ def obs_indicadores():
                     """
                 ),
             ),
-            width="100%",           # Ancho 100% del contenedor
-            class_name="sm:p-2 px-3 justify-center items-center", 
+            width="100%",
+            class_name="sm:p-2 px-3 justify-center items-center",
             style={"overflowX": "hidden"},
         ),
         superbanner(),
         footer_inst(),
         spacing="0",
-        class_name="w-full bg-white"
+        class_name="w-full bg-white",
     )
+
 
 # Página de indicadores
 @rx.page(route="/obs_otros_indicadores", title="Otros Indicadores")
-def obs_indicadores():
+def obs_otros_indicadores():
     return rx.vstack(
         huincha(),
         banner_generator("/banner_indicadores.png"),
@@ -114,14 +125,14 @@ def obs_indicadores():
                     """
                 ),
             ),
-            width="100%",           # Ancho 100% del contenedor
-            class_name="sm:p-2 px-3 justify-center items-center", 
+            width="100%",
+            class_name="sm:p-2 px-3 justify-center items-center",
             style={"overflowX": "hidden"},
         ),
         superbanner(),
         footer_inst(),
         spacing="0",
-        class_name="w-full bg-white"
+        class_name="w-full bg-white",
     )
 
 
@@ -141,6 +152,7 @@ def obs_repositorio():
                 class_name="w-full text-center",
                 # role="alert",
             ),
+            chatbot_assistant(),
             repo_menu(),
             class_name="w-full bg-white sm:w-3/4 p-5",
             spacing="2",
@@ -149,8 +161,9 @@ def obs_repositorio():
         footer_inst(),
         spacing="0",
         align="center",
-        class_name="w-full bg-white"
+        class_name="w-full bg-white",
     )
+
 
 # Página de contacto
 @rx.page(route="/obs_contacto", title="Contacto")
@@ -166,12 +179,12 @@ def obs_contacto():
         rx.desktop_only(
             rx.flex(
                 rx.html(
-                """
+                    """
                 <iframe src="https://docs.google.com/forms/d/e/1FAIpQLSdxHZqMCyLNV9LOs5zO0P7Dzj4YTatTpMNpjEGNf62T8DhDuw/viewform?embedded=true" width="640" height="1325" frameborder="0" marginheight="0" marginwidth="0">Cargando…</iframe>
                 """,
                 ),
                 rx.html(
-                """
+                    """
                 <iframe src="https://docs.google.com/forms/d/e/1FAIpQLSdbf9MB2Urtx5eaViOJrsusbcDuFEyBKOIy_d2cIIt5_vdx4Q/viewform?embedded=true" width="640" height="1280" frameborder="0" marginheight="0" marginwidth="0">Cargando…</iframe>
                 """,
                 ),
@@ -182,12 +195,12 @@ def obs_contacto():
         rx.mobile_and_tablet(
             rx.flex(
                 rx.html(
-                """
+                    """
                 <iframe src="https://docs.google.com/forms/d/e/1FAIpQLSdbf9MB2Urtx5eaViOJrsusbcDuFEyBKOIy_d2cIIt5_vdx4Q/viewform?embedded=true" width="300" height="1280" frameborder="0" marginheight="0" marginwidth="0">Cargando…</iframe>
                 """,
                 ),
                 rx.html(
-                """
+                    """
                 <iframe src="https://docs.google.com/forms/d/e/1FAIpQLSdxHZqMCyLNV9LOs5zO0P7Dzj4YTatTpMNpjEGNf62T8DhDuw/viewform?embedded=true" width="300" height="1325" frameborder="0" marginheight="0" marginwidth="0">Cargando…</iframe>
                 """,
                 ),
@@ -196,7 +209,6 @@ def obs_contacto():
                 direction="column",
             ),
         ),
-        
         superbanner(),
         footer_inst(),
         spacing="0",
@@ -205,7 +217,7 @@ def obs_contacto():
         background_size="cover",
         background_repeat="no-repeat",
         background_position="center",
-        class_name="w-full bg-white"
+        class_name="w-full bg-white",
     )
 
 
@@ -218,14 +230,32 @@ def academicas():
         navbar_main(),
         navbar_searchbar(),
         areas_selector(),
+        # Mensaje de feedback de búsqueda
+        rx.box(
+            rx.text(
+                State.search_message,
+                size="3",
+                class_name="text-gray-600 text-center p-4"
+            ),
+            width="100%",
+            class_name="md:px-40 px-5"
+        ),
         rx.flex(
-            rx.hstack(
-                rx.foreach(
-                    State.filtered_investigators,
-                    investigador_card
+            rx.cond(
+                ~State.search_results_empty,
+                rx.hstack(
+                    rx.foreach(State.filtered_investigators, investigador_card),
+                    wrap="wrap",
+                    justify="center",
                 ),
-                wrap="wrap",
-                justify="center",
+                rx.box(
+                    rx.text(
+                        "Intenta ajustar los filtros de búsqueda.",
+                        size="2",
+                        class_name="text-gray-500 text-center"
+                    ),
+                    class_name="py-8"
+                )
             ),
             class_name="w-full md:px-40 p-5",
             flex="1",
@@ -237,20 +267,17 @@ def academicas():
         # wrap="wrap",
         background_image="url('/bg_aca_.jpg')",
         # background_size="cover",
-        class_name="w-full h-auto"
+        class_name="w-full h-auto",
     )
 
-# Función para la tarjeta - usando el mismo patrón que tu código
-def investigador_card(inv, on_load=[State.load_academicas, State.load_entries_pub, State.load_entries]):
+def investigador_card(
+    inv, on_load=[State.load_academicas, State.load_entries_pub, State.load_entries]
+):
     return rx.card(
         rx.vstack(
-            # Parte Superior
             rx.hstack(
                 rx.flex(
-                    rx.image(
-                        src="/icono_inv.png",
-                        alt="Icono investigadora"
-                    ),
+                    rx.image(src="/icono_inv.png", alt="Icono investigadora"),
                     radius="full",
                 ),
                 rx.vstack(
@@ -273,14 +300,10 @@ def investigador_card(inv, on_load=[State.load_academicas, State.load_entries_pu
                 align="center",
                 width="100%",
             ),
-            # Parte Inferior - USANDO rx.cond como en tu código
             rx.hstack(
                 rx.link(
                     rx.image(
-                        src="/orcid_icon.png",
-                        alt="ORCID",
-                        width="24px",
-                        height="24px"
+                        src="/orcid_icon.png", alt="ORCID", width="24px", height="24px"
                     ),
                     href=rx.cond(
                         inv["orcid"],
@@ -315,7 +338,7 @@ def investigador_card(inv, on_load=[State.load_academicas, State.load_entries_pu
         class_name="p-5 md:m-5 shadow-lg",
     )
 
-# Función para crear los tabs con icono y texto, usado en proyectos y publicaciones de la página del perfil investigador
+
 def _tabs_trigger(text: str, icon: str, value: str):
     return rx.tabs.trigger(
         rx.hstack(
@@ -328,9 +351,22 @@ def _tabs_trigger(text: str, icon: str, value: str):
         value=value,
     )
 
+def adaptive_badge(item: rx.Var[str]) -> rx.Component:
+    """A responsive badge that truncates long text and shows full content on hover."""
+    return rx.el.div(
+        rx.el.span(item.strip(), class_name="truncate"),
+        rx.el.div(
+            item.strip(),
+            class_name="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-max max-w-xs p-2 text-sm bg-gray-900 text-white rounded-md shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10",
+        ),
+        class_name="group relative flex items-center bg-indigo-500 text-white text-sm font-medium px-3 py-1.5 rounded-full border border-violet-200 shadow-sm hover:bg-violet-400 transition-all cursor-default max-w-[200px] m-1",
+    )
 
 # Página perfil del investigador
-@rx.page(route="/investigadora/[id]", on_load=[State.load_entries_pub, State.load_entries, State.load_grid_data])
+@rx.page(
+    route="/investigadora/[id]",
+    on_load=[State.load_entries_pub, State.load_entries, State.load_grid_data],
+)
 def investigator_page():
     """Muestra el detalle del investigador según el índice en la URL."""
     return rx.vstack(
@@ -352,8 +388,14 @@ def investigator_page():
                             class_name="text-white",
                         ),
                         rx.box(
-                            rx.text(f"{State.current_investigator.name}", class_name="text-3xl font-bold text-white p-2"),
-                            rx.text(f"{State.current_investigator.grado_mayor}", class_name="text-white text-lg font-extralight p-2 break-words whitespace-normal"),
+                            rx.text(
+                                f"{State.current_investigator.name}",
+                                class_name="text-3xl font-bold text-white p-2",
+                            ),
+                            rx.text(
+                                f"{State.current_investigator.grado_mayor}",
+                                class_name="text-white text-lg font-extralight p-2 break-words whitespace-normal",
+                            ),
                             rx.hstack(
                                 # rx.link(
                                 #     rx.image(src="/orcid_icon.png"),
@@ -389,13 +431,14 @@ def investigator_page():
                                         rx.text(
                                             "ORCID: un identificador único y permanente que distingue a los investigadores y conecta sus publicaciones y proyectos."
                                             "Para más información, visita el sitio web de ORCID ",
-                                            rx.link("Click Aquí", href="https://orcid.org/"),
-                                            class_name="text-sm text-gray-700 p-2"
+                                            rx.link(
+                                                "Click Aquí", href="https://orcid.org/"
+                                            ),
+                                            class_name="text-sm text-gray-700 p-2",
                                         ),
-                                        class_name="bg-white p-2 rounded-lg shadow-lg max-w-xs"
+                                        class_name="bg-white p-2 rounded-lg shadow-lg max-w-xs",
                                     ),
                                 ),
-
                                 rx.link(
                                     rx.button(
                                         rx.icon("message-circle-more", size=16),
@@ -418,7 +461,10 @@ def investigator_page():
                                 spacing="6",
                             ),
                             rx.box(
-                                rx.text("Disciplinas OCDE nivel 2", class_name="text-white p-2"),
+                                rx.text(
+                                    "Disciplinas OCDE nivel 2",
+                                    class_name="text-white p-2",
+                                ),
                             ),
                             # rx.cond(
                             #     State.current_investigator.ocde_2,  # Si existe el campo
@@ -441,35 +487,21 @@ def investigator_page():
                             # ),
                             rx.cond(
                                 State.current_investigator.ocde_2,
-                                rx.grid(
+                                rx.flex(
                                     rx.foreach(
-                                        # Convertimos a lista y procesamos cada item
                                         State.current_investigator.ocde_2.split(","),
-                                        lambda item: rx.tooltip(
-                                            rx.badge(
-                                                # Usamos operaciones Var compatibles
-                                                rx.cond(
-                                                    item.strip().length() > 20,
-                                                    item.strip()[:18] + "...",
-                                                    item.strip()
-                                                ),
-                                                size="2",
-                                                variant="solid",
-                                                color_scheme="iris",
-                                                high_contrast=False,
-                                                class_name="text-xs font-mono text-center whitespace-nowrap"
-                                            ),
-                                            content=item.strip(),
-                                            class_name="bg-[#a280f6] font-mono text-center"
-                                        )
+                                        adaptive_badge,
                                     ),
-                                    columns=Breakpoints(initial="1", sm="2", md="3", lg="3", xl="3"),
-                                    spacing="2",
-                                    class_name="w-full"
+                                    wrap="wrap",
+                                    spacing="3",
+                                    class_name="w-full p-2",
                                 ),
                                 rx.box(
-                                    rx.text("No hay datos disponibles", class_name="text-white p-2"),
-                                )  
+                                    rx.text(
+                                        "No hay datos disponibles",
+                                        class_name="text-white p-2",
+                                    ),
+                                ),
                             ),
                             spacing="4",
                             class_name="p-2",
@@ -481,16 +513,24 @@ def investigator_page():
                                 rx.image(src="/total_pro.png"),
                                 rx.spacer(),
                                 rx.text("Proyectos: ", class_name="text-white text-xl"),
-                                rx.text(f"{State.filtered_count}", class_name="text-white text-2xl font-semibold"),
-                                class_name="items-center justify-center gap-2"
+                                rx.text(
+                                    f"{State.filtered_count}",
+                                    class_name="text-white text-2xl font-semibold",
+                                ),
+                                class_name="items-center justify-center gap-2",
                             ),
                             rx.divider(size="4", class_name="w-3/4 bg-white"),
                             rx.hstack(
                                 rx.image(src="/total_pub.png"),
                                 rx.spacer(),
-                                rx.text("Publicaciones: ", class_name="text-white text-xl"),
-                                rx.text(f"{State.filtered_count_pub}", class_name="text-white text-2xl font-semibold"),
-                                class_name="items-center justify-center gap-2"
+                                rx.text(
+                                    "Publicaciones: ", class_name="text-white text-xl"
+                                ),
+                                rx.text(
+                                    f"{State.filtered_count_pub}",
+                                    class_name="text-white text-2xl font-semibold",
+                                ),
+                                class_name="items-center justify-center gap-2",
                             ),
                             width="100%",
                             spacing="5",
@@ -500,7 +540,7 @@ def investigator_page():
                         ),
                         width="100%",
                         spacing="1",
-                        class_name="px-10",  
+                        class_name="px-10",
                     ),
                     spacing="4",
                     background_image="url('/bg_perfil.png')",
@@ -515,7 +555,7 @@ def investigator_page():
                         rx.avatar(
                             size="9",
                             # color_scheme="crimson",
-                            fallback=State.current_investigator.name[0],
+                            fallback=State.get_initials,
                             radius="full",
                             variant="solid",
                             color_scheme="iris",
@@ -523,8 +563,14 @@ def investigator_page():
                             class_name="text-white",
                         ),
                         rx.box(
-                            rx.text(f"{State.current_investigator.name}", class_name="text-2xl font-semibold text-white p-1"),
-                            rx.text(f"{State.current_investigator.grado_mayor}", class_name="text-white p-1"),
+                            rx.text(
+                                f"{State.current_investigator.name}",
+                                class_name="text-2xl font-semibold text-white p-1",
+                            ),
+                            rx.text(
+                                f"{State.current_investigator.grado_mayor}",
+                                class_name="text-white p-1",
+                            ),
                             # rx.cond(
                             #     State.current_investigator.magister is None,
                             #     rx.text(f"{State.current_investigator.magister}", class_name="text-indigo-900 italic")
@@ -573,52 +619,52 @@ def investigator_page():
                             rx.text("Disciplinas OCDE nivel 2", color="white"),
                         ),
                         rx.cond(
-                                State.current_investigator.ocde_2,
-                                rx.grid(
-                                    rx.foreach(
-                                        # Convertimos a lista y procesamos cada item
-                                        State.current_investigator.ocde_2.split(","),
-                                        lambda item: rx.tooltip(
-                                            rx.badge(
-                                                # Usamos operaciones Var compatibles
-                                                rx.cond(
-                                                    item.strip().length() > 16,
-                                                    item.strip()[:16] + "...",
-                                                    item.strip()
-                                                ),
-                                                size="3",
-                                                variant="solid",
-                                                color_scheme="iris",
-                                                high_contrast=False,
-                                                class_name="text-xs font-mono"
-                                            ),
-                                            content=item.strip(),
-                                            class_name="bg-[#a280f6] font-mono"
-                                        )
-                                    ),
-                                    columns=Breakpoints(initial="2", sm="2"),
-                                    spacing="2",
-                                    class_name="w-full py-5"
+                            State.current_investigator.ocde_2,
+                            rx.flex(
+                                rx.foreach(
+                                    State.current_investigator.ocde_2.split(","),
+                                    adaptive_badge,
                                 ),
-                                rx.box(
-                                    rx.text("No hay datos disponibles", class_name="text-white p-2"),
-                                ) 
+                                wrap="wrap",
+                                spacing="3",
+                                class_name="w-full p-2",
                             ),
+                            rx.box(
+                                rx.text(
+                                    "No hay datos disponibles",
+                                    class_name="text-white p-2",
+                                ),
+                            ),
+                        ),
                         rx.vstack(
                             rx.hstack(
-                                rx.image(src="/total_pro.png", class_name="w-1/2 h-1/2"),
+                                rx.image(
+                                    src="/total_pro.png", class_name="w-1/2 h-1/2"
+                                ),
                                 rx.spacer(),
-                                rx.text("Proyectos: ", class_name="text-white text-base"),
-                                rx.text(f"{State.filtered_count}", class_name="text-white text-lg font-semibold"),
-                                class_name="items-center justify-center gap-2"
+                                rx.text(
+                                    "Proyectos: ", class_name="text-white text-base"
+                                ),
+                                rx.text(
+                                    f"{State.filtered_count}",
+                                    class_name="text-white text-lg font-semibold",
+                                ),
+                                class_name="items-center justify-center gap-2",
                             ),
                             rx.divider(size="4", class_name="w-1/2 bg-white"),
                             rx.hstack(
-                                rx.image(src="/total_pub.png", class_name="w-1/2 h-1/2"),
+                                rx.image(
+                                    src="/total_pub.png", class_name="w-1/2 h-1/2"
+                                ),
                                 rx.spacer(),
-                                rx.text("Publicaciones: ", class_name="text-white text-base"),
-                                rx.text(f"{State.filtered_count_pub}", class_name="text-white text-lg font-semibold"),
-                                class_name="items-center justify-center gap-2"
+                                rx.text(
+                                    "Publicaciones: ", class_name="text-white text-base"
+                                ),
+                                rx.text(
+                                    f"{State.filtered_count_pub}",
+                                    class_name="text-white text-lg font-semibold",
+                                ),
+                                class_name="items-center justify-center gap-2",
                             ),
                             spacing="2",
                             class_name="w-full rounded-lg mt-4 p-5 bg-gray-800/90",
@@ -639,8 +685,7 @@ def investigator_page():
                     background_repeat="no-repeat",
                     background_position="center",
                     overflow="hidden",
-
-                ),  
+                ),
                 height="100%",
                 width="100%",
                 # class_name="bg-indigo-300/85 shadow-lg p-10",
@@ -648,7 +693,7 @@ def investigator_page():
                 gap="4",
                 # class_name="py-20 text-left",
                 # columns=Breakpoints(initial="1", sm="1", lg="4", xl="4"),
-                        # background="url('/bg_bio.png')",
+                # background="url('/bg_bio.png')",
             ),
             width="100%",
             class_name="p-5 text-left",
@@ -674,13 +719,17 @@ def investigator_page():
                 default_value="projects",
                 width="100%",
                 # class_name="py-5",
-                
             ),
             class_name="w-full p-2 sm:p-10",
             spacing="0",
         ),
         rx.flex(
-            rx.link(rx.button("Volver", cursor="pointer", class_name="bg-[#a280f6]"), href="/investigadoras", color="#a280f6", class_name="text-center px-10 py-5"),
+            rx.link(
+                rx.button("Volver", cursor="pointer", class_name="bg-[#a280f6]"),
+                href="/investigadoras",
+                color="#a280f6",
+                class_name="text-center px-10 py-5",
+            ),
             width="100%",
             spacing="1",
         ),
@@ -689,8 +738,9 @@ def investigator_page():
         spacing="0",
         # background="url('/bg_inv.png')",
         background_color="#dfdfdf",
-        # on_mount=State.load_grid_data, 
-)
+        # on_mount=State.load_grid_data,
+    )
+
 
 # Estilos personalizados
 base_stylesheets = [
@@ -721,13 +771,14 @@ app = rx.App(
     style=base_style,
     stylesheets=base_stylesheets,
     theme=rx.theme(
-        has_background=True, radius="large", accent_color="indigo", appearance="light",
+        has_background=True,
+        radius="large",
+        accent_color="indigo",
+        appearance="light",
     ),
     head_components=[
         rx.script(
-            src="https://badge.dimensions.ai/badge.js",
-            async_=True,
-            char_set="utf-8"
+            src="https://badge.dimensions.ai/badge.js", async_=True, char_set="utf-8"
         ),
         rx.script(
             src="https://d1bxh8uas1mnw7.cloudfront.net/assets/embed.js",
@@ -738,6 +789,5 @@ app = rx.App(
             href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Inline:opsz,wght@10..72,100..900&family=Big+Shoulders:opsz,wght@10..72,100..900&family=Grenze+Gotisch:wght@100..900&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Open+Sans:ital,wght@0,300..800;1,300..800&family=Outfit&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Roboto+Mono:ital,wght@0,100..700;1,100..700&family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap",
             rel="stylesheet",
         ),
-    ]
-    
+    ],
 )

@@ -12,6 +12,8 @@ class Investigador(rx.Base):
     email: Optional[str] = None
     grado_mayor: Optional[str] = None
     unidad_contrato: Optional[str] = None
+    total_proyectos: int = 0
+    total_publicaciones: int = 0
     # titulo: Optional[str] = None
     # magister: Optional[str] = None
     # doctorado: Optional[str] = None

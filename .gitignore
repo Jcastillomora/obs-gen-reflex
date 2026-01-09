@@ -2,6 +2,7 @@
 *.db
 *.py[cod]
 .web
+.env
 __pycache__/
 assets/external/
 academicas.xlsx
