@@ -222,7 +222,7 @@ def obs_contacto():
 
 
 # Página de investigadores
-@rx.page(route="/investigadoras", on_load=State.load_academicas)
+@rx.page(route="/investigadoras", title="Investigadoras", on_load=State.load_academicas)
 def academicas():
     return rx.vstack(
         huincha(),
