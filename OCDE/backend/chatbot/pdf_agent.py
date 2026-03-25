@@ -59,7 +59,7 @@ class AgnoDocumentChatbot:
 
             # Crear Agent con Claude
             self.agent = Agent(
-                model=Claude(id="claude-sonnet-4-5"),
+                model=Claude(id="claude-haiku-4-5-20251001"),
                 instructions=f"""Eres un asistente inteligente especializado en el Observatorio de Género en Ciencia de la Universidad de La Frontera (UFRO).
 
 CONTEXTO DE DOCUMENTOS:
@@ -94,8 +94,10 @@ PRIVACIDAD Y CONFIDENCIALIDAD:
                 logger.warning(f"Directorio {self.documents_directory} no existe")
                 return
 
-            # Cargar archivos PDF
-            pdf_files = list(Path(self.documents_directory).glob("*.pdf"))
+            # Cargar archivos PDF (directorio raíz + uploads/)
+            pdf_files = list(Path(self.documents_directory).glob("*.pdf")) + list(
+                Path(self.documents_directory).glob("uploads/*.pdf")
+            )
             excel_files = list(Path(self.documents_directory).glob("*.xlsx")) + list(
                 Path(self.documents_directory).glob("*.xls")
             )
@@ -265,7 +267,7 @@ PRIVACIDAD Y CONFIDENCIALIDAD:
 
         context_parts = []
         total_length = 0
-        max_context_length = 50000
+        max_context_length = 15000
 
         for doc in self.documents:
             file_name = getattr(doc, "file_name", "Desconocido")
@@ -307,7 +309,7 @@ PRIVACIDAD Y CONFIDENCIALIDAD:
                 return "Por favor, haz una pregunta específica sobre los documentos del observatorio."
 
             if self.agent is not None:
-                response = self.agent.run(question)
+                response = self.agent.run(question, add_history_to_messages=False)
             else:
                 return "El agente no está inicializado correctamente."
 
@@ -334,6 +336,13 @@ PRIVACIDAD Y CONFIDENCIALIDAD:
 
         return documents
 
+    def reload(self):
+        """Recarga documentos y recrea el agente (usar tras subir nuevos archivos)."""
+        self.documents = []
+        self.agent = None
+        self._initialize()
+        logger.info("Agno Agent recargado con documentos actualizados")
+
     def get_agent_info(self) -> Dict[str, Any]:
         """Obtiene información sobre el estado del agent."""
         return {
@@ -351,6 +360,11 @@ PRIVACIDAD Y CONFIDENCIALIDAD:
 
 # Instancia global
 agno_chatbot = AgnoDocumentChatbot()
+
+
+def reload_pdf_chatbot() -> None:
+    """Recarga el chatbot con los documentos actuales (llamar tras subir nuevos archivos)."""
+    agno_chatbot.reload()
 
 
 def get_pdf_chatbot_response(question: str) -> str:

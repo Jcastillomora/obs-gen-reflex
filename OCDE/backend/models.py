@@ -1,5 +1,6 @@
 import reflex as rx
 from typing import Optional, List
+from datetime import datetime
 
 # modelo de la base de datos para los investigadores
 class Investigador(rx.Base):
@@ -44,3 +45,12 @@ class Proyectos(rx.Base):
     investigador_responsable: str
     rut_ir: str
     rol: str
+
+
+# modelo SQLite para documentos del repositorio
+class Documento(rx.Model, table=True):
+    titulo: str
+    descripcion: str
+    tipo: str           # "reporte" | "documento"
+    filename: str       # nombre del archivo en assets/uploads/
+    created_at: str = ""

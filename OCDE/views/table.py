@@ -185,32 +185,6 @@ class EventArgState(rx.State):
 #Tabla de proyectos
 def main_table() -> rx.Component:
     return rx.fragment(
-        # rx.flex(
-        #     rx.input(
-        #         rx.input.slot(rx.icon("search")),
-        #         rx.input.slot(
-        #             rx.icon("x"),
-        #             justify="end",
-        #             cursor="pointer",
-        #             on_click=State.setvar("search_value_proy", ""),
-        #             display=rx.cond(State.search_value_proy, "flex", "none"),
-        #         ),
-        #         value=State.search_value_proy,
-        #         placeholder="Buscar aquí...",
-        #         size="3",
-        #         max_width="250px",
-        #         width="100%",
-        #         variant="surface",
-        #         color_scheme="gray",
-        #         on_change=State.set_search_value_proy,
-        #     ),
-        #     align="center",
-        #     justify="end",
-        #     spacing="3",
-        #     wrap="wrap",
-        #     width="100%",
-        #     padding_bottom="1em",
-        # ),
         rx.table.root(
             rx.table.header(
                 rx.table.row(
@@ -240,32 +214,6 @@ def main_table() -> rx.Component:
 #Tabla de publicaciones
 def pub_table() -> rx.Component:
     return rx.fragment(
-        # rx.flex(
-        #     rx.input(
-        #         rx.input.slot(rx.icon("search")),
-        #         rx.input.slot(
-        #             rx.icon("x"),
-        #             justify="end",
-        #             cursor="pointer",
-        #             on_click=State.setvar("search_value_pub", ""),
-        #             display=rx.cond(State.search_value_pub, "flex", "none"),
-        #         ),
-        #         value=State.search_value_pub,
-        #         placeholder="Buscar aquí...",
-        #         size="3",
-        #         max_width="250px",
-        #         width="100%",
-        #         variant="surface",
-        #         color_scheme="indigo",
-        #         on_change=State.set_search_value_pub,
-        #     ),
-        #     align="center",
-        #     justify="end",
-        #     spacing="3",
-        #     wrap="wrap",
-        #     width="100%",
-        #     padding_bottom="1em",
-        # ),
         rx.table.root(
             rx.table.header(
                 rx.table.row(

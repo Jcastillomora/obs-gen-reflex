@@ -89,6 +89,14 @@ class DataCache:
             cls.df_academicas = pd.read_excel(academicas_path)
             cls.df_proyectos = pd.read_excel(proyectos_path)
             cls.df_publicaciones = pd.read_excel(publicaciones_path)
+
+            # Validar columnas requeridas
+            required_academicas = {"id", "rut_ir", "name", "ocde_2", "orcid", "grado_mayor"}
+            required_proyectos = {"rut_ir", "año", "ocde_2", "rol", "codigo", "titulo"}
+            required_publicaciones = {"rut_ir", "doi"}
+            cls._validate_columns(cls.df_academicas, required_academicas, "academicas")
+            cls._validate_columns(cls.df_proyectos, required_proyectos, "proyectos")
+            cls._validate_columns(cls.df_publicaciones, required_publicaciones, "publicaciones")
             
             # Limpiar datos
             cls._clean_academicas()
@@ -127,6 +135,13 @@ class DataCache:
             logger.error(f"❌ DataCache: Error cargando datos: {e}")
             raise
     
+    @classmethod
+    def _validate_columns(cls, df: pd.DataFrame, required: set, name: str):
+        """Verifica que el DataFrame contenga las columnas mínimas requeridas."""
+        missing = required - set(df.columns)
+        if missing:
+            raise ValueError(f"Archivo '{name}' no tiene columnas requeridas: {missing}")
+
     @classmethod
     def _clean_academicas(cls):
         """Limpia y normaliza datos de académicas."""

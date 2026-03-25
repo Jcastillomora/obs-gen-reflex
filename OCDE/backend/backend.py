@@ -8,12 +8,40 @@ UBICACIÓN: OCDE/backend/backend.py
 
 import reflex as rx
 import asyncio
+import logging
+import re
 from .data_items import all_items
 from .data_cache import DataCache  # Caché compartido
-import pandas as pd
-import numpy as np
-from .models import Investigador, Publicaciones, Proyectos
+from .models import Investigador, Publicaciones, Proyectos, Documento
 from typing import Dict, List, Optional
+from sqlmodel import select
+
+logger = logging.getLogger(__name__)
+
+# Carousel
+CAROUSEL_SLEEP_SECONDS = 8
+
+# Patrones regex para detección de filtros numéricos en AI Search
+_PROYECTO_PATTERNS = [
+    r"(?:más|mas|mayor|mayores)\s*(?:de|que)\s*(\d+)\s*(?:proyectos?|projects?)",
+    r"(\d+)\s*(?:o\s*)?(?:más|mas)\s*proyectos?",
+    r"(?:al\s*menos|mínimo|minimo|min)\s*(\d+)\s*proyectos?",
+    r"(?:con|tengan?|tienen?)\s*(?:más|mas)?\s*(?:de)?\s*(\d+)\s*proyectos?",
+    r">\s*(\d+)\s*proyectos?",
+    r">=\s*(\d+)\s*proyectos?",
+]
+
+_PUB_PATTERNS = [
+    r"(?:más|mas|mayor|mayores)\s*(?:de|que)\s*(\d+)\s*(?:publicacion|publicaciones|publications?|papers?|artículos?|articulos?)",
+    r"(\d+)\s*(?:o\s*)?(?:más|mas)\s*(?:publicacion|publicaciones|papers?)",
+    r"(?:al\s*menos|mínimo|minimo|min)\s*(\d+)\s*(?:publicacion|publicaciones|papers?)",
+    r"(?:con|tengan?|tienen?)\s*(?:más|mas)?\s*(?:de)?\s*(\d+)\s*(?:publicacion|publicaciones|papers?)",
+    r">\s*(\d+)\s*(?:publicacion|publicaciones|papers?)",
+    r">=\s*(\d+)\s*(?:publicacion|publicaciones|papers?)",
+]
+
+_ROL_CO_PATTERN = r"(?:co-?i\b|co-?\s*investigador[aes]?|coinvestigador[aes]?)"
+_ROL_IR_PATTERN = r"(?:\bir\b|investigador[aes]?\s+responsables?|responsables?|principales?)"
 
 
 class State(rx.State):
@@ -96,6 +124,10 @@ class State(rx.State):
     ai_search_results_summary: str = ""
     ai_detected_areas: list[str] = []
 
+    # Repositorio (cargado de DB)
+    reportes_items: list[dict] = []
+    documentos_items: list[dict] = []
+
     # =========================================================
     # CAROUSEL
     # =========================================================
@@ -111,7 +143,7 @@ class State(rx.State):
     @rx.event(background=True)
     async def start_autoscroll(self):
         while True:
-            await asyncio.sleep(8)
+            await asyncio.sleep(CAROUSEL_SLEEP_SECONDS)
             async with self:
                 self.current_index = (self.current_index + 1) % len(self.image_urls)
 
@@ -209,6 +241,7 @@ class State(rx.State):
     def sorted_selected_areas(self) -> list[str]:
         return sorted(self.selected_areas)
 
+    @rx.event
     def add_selected_area(self):
         if self.selected_area_temp and self.selected_area_temp not in self.selected_areas:
             self.selected_areas.append(self.selected_area_temp)
@@ -292,9 +325,6 @@ class State(rx.State):
                 return inv
         return None
 
-    def load_investigador(self, id: int | None = None):
-        pass
-
     @rx.var
     def current_investigator_is_none(self) -> bool:
         return self.current_investigator is None
@@ -327,9 +357,9 @@ class State(rx.State):
     def load_entries(self):
         """Carga proyectos del investigador actual usando DataCache."""
         if self.current_investigator is None:
-            print("Error: self.current_investigator es None.")
+            logger.error("load_entries: current_investigator es None.")
             return
-        
+
         rut = str(self.current_investigator.rut_ir)
         df = DataCache.get_proyectos_by_rut(rut)
         
@@ -350,9 +380,9 @@ class State(rx.State):
     def load_entries_pub(self):
         """Carga publicaciones del investigador actual usando DataCache."""
         if self.current_investigator is None:
-            print("Error: self.current_investigator es None.")
+            logger.error("load_entries_pub: current_investigator es None.")
             return
-        
+
         rut = str(self.current_investigator.rut_ir)
         df = DataCache.get_publicaciones_by_rut(rut)
         
@@ -502,20 +532,6 @@ class State(rx.State):
     def clear_selected(self, list_name: str):
         self.selected_items[list_name].clear()
 
-    def random_selected(self, list_name: str):
-        self.selected_items[list_name] = np.random.choice(
-            all_items[list_name],
-            size=np.random.randint(1, len(all_items[list_name]) + 1),
-            replace=False,
-        ).tolist()
-
-    @rx.event
-    def toggle_filter(self, filter_key: str, value: str):
-        if value in self.filtro_cateegorias[filter_key]:
-            self.filtro_cateegorias[filter_key].remove(value)
-        else:
-            self.filtro_cateegorias[filter_key].append(value)
-
     # =========================================================
     # CHATBOT
     # =========================================================
@@ -554,7 +570,7 @@ class State(rx.State):
     @rx.event
     def handle_chatbot_key_press(self, key: str):
         if key == "Enter" and not self.chatbot_is_loading and self.chatbot_input.strip():
-            return self.send_user_message_immediate
+            return type(self).send_user_message_immediate
 
     @rx.event
     def send_user_message_immediate(self):
@@ -653,67 +669,38 @@ class State(rx.State):
 
     def _perform_simple_ai_search(self):
         """Fallback de búsqueda simple con detección robusta de filtros."""
-        import re
         query = self.ai_search_query.lower()
-        
-        print(f"🔍 AI Search Query: '{query}'")  # Debug
-
-        # Patrones más flexibles para proyectos
-        proyecto_patterns = [
-            r"(?:más|mas|mayor|mayores)\s*(?:de|que)\s*(\d+)\s*(?:proyectos?|projects?)",
-            r"(\d+)\s*(?:o\s*)?(?:más|mas)\s*proyectos?",
-            r"(?:al\s*menos|mínimo|minimo|min)\s*(\d+)\s*proyectos?",
-            r"(?:con|tengan?|tienen?)\s*(?:más|mas)?\s*(?:de)?\s*(\d+)\s*proyectos?",
-            r">\s*(\d+)\s*proyectos?",
-            r">=\s*(\d+)\s*proyectos?",
-        ]
-        
-        # Patrones más flexibles para publicaciones
-        pub_patterns = [
-            r"(?:más|mas|mayor|mayores)\s*(?:de|que)\s*(\d+)\s*(?:publicacion|publicaciones|publications?|papers?|artículos?|articulos?)",
-            r"(\d+)\s*(?:o\s*)?(?:más|mas)\s*(?:publicacion|publicaciones|papers?)",
-            r"(?:al\s*menos|mínimo|minimo|min)\s*(\d+)\s*(?:publicacion|publicaciones|papers?)",
-            r"(?:con|tengan?|tienen?)\s*(?:más|mas)?\s*(?:de)?\s*(\d+)\s*(?:publicacion|publicaciones|papers?)",
-            r">\s*(\d+)\s*(?:publicacion|publicaciones|papers?)",
-            r">=\s*(\d+)\s*(?:publicacion|publicaciones|papers?)",
-        ]
-        
-        rol_co_pattern = r"(?:co-?i\b|co-?\s*investigador[aes]?|coinvestigador[aes]?)"
-        rol_ir_pattern = r"(?:\bir\b|investigador[aes]?\s+responsables?|responsables?)"
+        logger.debug("AI Search simple query: '%s'", query)
 
         detected_areas = []
         applied_filters = []
-        
+
         # Buscar proyectos
         proyecto_match = None
-        for pattern in proyecto_patterns:
+        for pattern in _PROYECTO_PATTERNS:
             proyecto_match = re.search(pattern, query)
             if proyecto_match:
-                print(f"✅ Proyecto match con patrón: {pattern}")  # Debug
-                break
-        
-        # Buscar publicaciones  
-        pub_match = None
-        for pattern in pub_patterns:
-            pub_match = re.search(pattern, query)
-            if pub_match:
-                print(f"✅ Publicaciones match con patrón: {pattern}")  # Debug
                 break
 
-        rol_co_match = re.search(rol_co_pattern, query)
-        rol_ir_match = re.search(rol_ir_pattern, query)
+        # Buscar publicaciones
+        pub_match = None
+        for pattern in _PUB_PATTERNS:
+            pub_match = re.search(pattern, query)
+            if pub_match:
+                break
+
+        rol_co_match = re.search(_ROL_CO_PATTERN, query)
+        rol_ir_match = re.search(_ROL_IR_PATTERN, query)
 
         if proyecto_match:
             self.min_proyectos = str(int(proyecto_match.group(1)))
             applied_filters.append(f"mínimo {self.min_proyectos} proyectos")
-            print(f"✅ min_proyectos = {self.min_proyectos}")  # Debug
         else:
             self.min_proyectos = ""
 
         if pub_match:
             self.min_publicaciones = str(int(pub_match.group(1)))
             applied_filters.append(f"mínimo {self.min_publicaciones} publicaciones")
-            print(f"✅ min_publicaciones = {self.min_publicaciones}")  # Debug
         else:
             self.min_publicaciones = ""
 
@@ -743,65 +730,39 @@ class State(rx.State):
             self.ai_search_results_summary = f"Filtros aplicados: {', '.join(applied_filters)}"
         else:
             self.ai_search_results_summary = f"Búsqueda por '{self.ai_search_query}'"
-        
-        print(f"📊 Resumen: {self.ai_search_results_summary}")  # Debug
+
+        logger.debug("AI Search resumen: %s", self.ai_search_results_summary)
 
     def _process_ai_search_response(self, response):
         """Procesa respuesta de IA."""
         try:
-            import re
-            
             # =====================================================
             # PASO 1: SIEMPRE detectar filtros numéricos primero
             # Esto funciona independiente de la respuesta del agente
             # =====================================================
             query = self.ai_search_query.lower()
             applied_filters = []
-            
-            print(f"🔍 Procesando AI Search: '{query}'")  # Debug
-            
-            # Patrones más flexibles para proyectos
-            proyecto_patterns = [
-                r"(?:más|mas|mayor|mayores)\s*(?:de|que)\s*(\d+)\s*(?:proyectos?|projects?)",
-                r"(\d+)\s*(?:o\s*)?(?:más|mas)\s*proyectos?",
-                r"(?:al\s*menos|mínimo|minimo|min)\s*(\d+)\s*proyectos?",
-                r"(?:con|tengan?|tienen?)\s*(?:más|mas)?\s*(?:de)?\s*(\d+)\s*proyectos?",
-                r">\s*(\d+)\s*proyectos?",
-                r">=\s*(\d+)\s*proyectos?",
-            ]
+
+            logger.debug("Procesando AI Search response para query: '%s'", query)
+
             min_proy_detected = None
-            for pattern in proyecto_patterns:
+            for pattern in _PROYECTO_PATTERNS:
                 match = re.search(pattern, query)
                 if match:
                     min_proy_detected = int(match.group(1))
-                    print(f"✅ Proyecto detectado: {min_proy_detected}")  # Debug
                     break
-            
-            # Patrones más flexibles para publicaciones
-            pub_patterns = [
-                r"(?:más|mas|mayor|mayores)\s*(?:de|que)\s*(\d+)\s*(?:publicacion|publicaciones|publications?|papers?|artículos?|articulos?)",
-                r"(\d+)\s*(?:o\s*)?(?:más|mas)\s*(?:publicacion|publicaciones|papers?)",
-                r"(?:al\s*menos|mínimo|minimo|min)\s*(\d+)\s*(?:publicacion|publicaciones|papers?)",
-                r"(?:con|tengan?|tienen?)\s*(?:más|mas)?\s*(?:de)?\s*(\d+)\s*(?:publicacion|publicaciones|papers?)",
-                r">\s*(\d+)\s*(?:publicacion|publicaciones|papers?)",
-                r">=\s*(\d+)\s*(?:publicacion|publicaciones|papers?)",
-            ]
+
             min_pub_detected = None
-            for pattern in pub_patterns:
+            for pattern in _PUB_PATTERNS:
                 match = re.search(pattern, query)
                 if match:
                     min_pub_detected = int(match.group(1))
-                    print(f"✅ Publicaciones detectado: {min_pub_detected}")  # Debug
                     break
-            
-            # Detectar rol
-            rol_co_pattern = r"(?:co-?i\b|co-?\s*investigador[aes]?|coinvestigador[aes]?)"
-            rol_ir_pattern = r"(?:\bir\b|investigador[aes]?\s+responsables?|responsables?|principales?)"
-            
+
             rol_detected = None
-            if re.search(rol_co_pattern, query):
+            if re.search(_ROL_CO_PATTERN, query):
                 rol_detected = "co-i"
-            elif re.search(rol_ir_pattern, query):
+            elif re.search(_ROL_IR_PATTERN, query):
                 rol_detected = "ir"
             
             # =====================================================
@@ -866,7 +827,7 @@ class State(rx.State):
             else:
                 self.search_rol = ""
             
-            print(f"📊 Filtros aplicados: {applied_filters}")  # Debug
+            logger.debug("Filtros aplicados: %s", applied_filters)
 
             # =====================================================
             # PASO 4: Aplicar filtros de nombre/área
@@ -899,11 +860,76 @@ class State(rx.State):
                 self.ai_search_results_summary = f"Búsqueda por '{self.ai_search_query}'"
 
         except Exception as e:
-            print(f"❌ Error en _process_ai_search_response: {e}")  # Debug
+            logger.error("Error en _process_ai_search_response: %s", e)
             self.ai_search_error = f"Error procesando respuesta: {str(e)}"
             self._perform_simple_ai_search()
 
     @rx.event
     def clear_ai_detected_areas(self):
         self.ai_detected_areas = []
+
+    # =========================================================
+    # REPOSITORIO (DB)
+    # =========================================================
+
+    @rx.event
+    def load_repositorio(self):
+        _DEFAULTS = [
+            {
+                "titulo": "Brechas de Género en Educación Superior 2025",
+                "descripcion": "Servicio de Información de Educación Superior, 2026",
+                "tipo": "documento",
+                "filename": "Informe-de-Brechas-en-Educacion-Superior-2025-marzo-2026.pdf",
+                "created_at": "2026-03-01",
+            },
+            {
+                "titulo": "Alianza de mujeres en la academia",
+                "descripcion": "Universidad de los Andes, 2024",
+                "tipo": "documento",
+                "filename": "alianza_mujeres.pdf",
+                "created_at": "2024-01-01",
+            },
+            {
+                "titulo": "Encuesta mujeres en la academia (EMA)",
+                "descripcion": "Universidad Mayor, 2025",
+                "tipo": "documento",
+                "filename": "encuesta_EMA.pdf",
+                "created_at": "2025-01-01",
+            },
+        ]
+        try:
+            with rx.session() as session:
+                # Sembrar datos iniciales si la tabla está vacía
+                count = len(session.exec(select(Documento)).all())
+                if count == 0:
+                    for d in _DEFAULTS:
+                        session.add(Documento(**d))
+                    session.commit()
+
+                reportes = session.exec(
+                    select(Documento).where(Documento.tipo == "reporte")
+                ).all()
+                self.reportes_items = [
+                    {
+                        "heading_text": doc.titulo,
+                        "body_text": doc.descripcion,
+                        "download_url": f"/{doc.filename}",
+                    }
+                    for doc in reportes
+                ]
+                documentos = session.exec(
+                    select(Documento).where(Documento.tipo == "documento")
+                ).all()
+                self.documentos_items = [
+                    {
+                        "heading_text": doc.titulo,
+                        "body_text": doc.descripcion,
+                        "download_url": f"/{doc.filename}",
+                    }
+                    for doc in documentos
+                ]
+        except Exception as e:
+            logger.error("Error cargando repositorio: %s", e)
+            self.reportes_items = []
+            self.documentos_items = []
         self.ai_search_results_summary = ""

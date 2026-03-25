@@ -8,3 +8,9 @@ assets/external/
 academicas.xlsx
 publicaciones_total.xlsx
 proyectos_total.xlsx
+
+# Claude Code
+.claude/
+CLAUDE.md
+skills-lock.json
+2026-*.txt

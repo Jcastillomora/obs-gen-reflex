@@ -392,7 +392,7 @@ def footer_brand() -> rx.Component:
     return rx.vstack(
         # Logo
         rx.image(
-            src="https://vrip.ufro.cl/wp-content/uploads/2022/03/newRecurso-1diufro_.svg",
+            src="https://www.ufro.cl/wp-content/uploads/2024/07/sello-acreditacion-CNA-ufro.webp",
             class_name="w-72 h-20"
         ),
         # Texto principal

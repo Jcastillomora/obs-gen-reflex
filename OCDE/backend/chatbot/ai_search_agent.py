@@ -28,6 +28,10 @@ except ImportError:
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Configuración del agente
+AI_MODEL_ID = "claude-3-5-haiku-20241022"
+MAX_INVESTIGATORS_PREVIEW = 15  # Máx investigadores incluidos en el resumen del agente
+
 
 class AgnoSearchAgent:
     """
@@ -174,69 +178,61 @@ class AgnoSearchAgent:
             f"{len(self.all_areas)} áreas"
         )
 
-    def _create_investigators_summary_from_cache(self):
-        """Crea resumen de investigadores usando el DataCache compartido."""
-        try:
-            area_counts = {}
-            investigator_details = []
+    def _index_by_rut(self, records: list) -> dict:
+        """Agrupa una lista de dicts por rut_ir."""
+        index = {}
+        for record in records:
+            rut = record.get("rut_ir")
+            if rut:
+                index.setdefault(rut, []).append(record)
+        return index
 
-            # Indexar publicaciones y proyectos por RUT
-            pub_by_rut = {}
-            proy_by_rut = {}
+    def _build_summary(
+        self,
+        investigadores_list: list,
+        pub_by_rut: dict,
+        proy_by_rut: dict,
+        total_pub: int,
+        total_proy: int,
+    ):
+        """Construye el resumen de investigadores para el prompt del agente."""
+        area_counts = {}
+        investigator_details = []
 
-            for pub in DataCache.publicaciones_list:
-                rut = pub.get("rut_ir")
-                if rut:
-                    if rut not in pub_by_rut:
-                        pub_by_rut[rut] = []
-                    pub_by_rut[rut].append(pub)
+        for inv in investigadores_list[:MAX_INVESTIGATORS_PREVIEW]:
+            areas_str = inv.get("ocde_2", "")
+            areas = [a.strip() for a in areas_str.split(",") if a.strip()] if areas_str and areas_str != "nan" else []
+            for area in areas:
+                area_counts[area] = area_counts.get(area, 0) + 1
 
-            for proy in DataCache.proyectos_list:
-                rut = proy.get("rut_ir")
-                if rut:
-                    if rut not in proy_by_rut:
-                        proy_by_rut[rut] = []
-                    proy_by_rut[rut].append(proy)
+            rut = inv.get("rut_ir")
+            pub_titles = [p.get("titulo", "")[:100] for p in pub_by_rut.get(rut, [])[:3]]
+            proy_titles = [p.get("titulo", "")[:100] for p in proy_by_rut.get(rut, [])[:3]]
 
-            # Procesar primeros 30 investigadores
-            for inv in self.investigadores_data[:30]:
-                areas_str = inv.get("ocde_2", "")
-                if areas_str and areas_str != "nan":
-                    areas = [a.strip() for a in areas_str.split(",") if a.strip()]
-                else:
-                    areas = []
+            inv_detail = f"- {inv.get('name', 'N/A')} (ID: {inv.get('id', 'N/A')}, RUT: {rut}, Áreas: {inv.get('ocde_2', 'N/A')})"
+            if pub_titles:
+                inv_detail += f"\n  Publicaciones: {'; '.join(pub_titles)}"
+            if proy_titles:
+                inv_detail += f"\n  Proyectos: {'; '.join(proy_titles)}"
+            investigator_details.append(inv_detail)
 
-                for area in areas:
-                    area_counts[area] = area_counts.get(area, 0) + 1
-
-                rut = inv.get("rut_ir")
-                publicaciones = pub_by_rut.get(rut, [])
-                proyectos = proy_by_rut.get(rut, [])
-
-                pub_titles = [pub.get("titulo", "")[:100] for pub in publicaciones[:3]]
-                proy_titles = [proy.get("titulo", "")[:100] for proy in proyectos[:3]]
-
-                inv_detail = f"- {inv.get('name', 'N/A')} (ID: {inv.get('id', 'N/A')}, RUT: {rut}, Áreas: {inv.get('ocde_2', 'N/A')})"
-                if pub_titles:
-                    inv_detail += f"\n  Publicaciones: {'; '.join(pub_titles)}"
-                if proy_titles:
-                    inv_detail += f"\n  Proyectos: {'; '.join(proy_titles)}"
-
-                investigator_details.append(inv_detail)
-
-            self.investigadores_summary = f"""
+        top_areas = ", ".join(
+            f"{area} ({count})"
+            for area, count in sorted(area_counts.items(), key=lambda x: x[1], reverse=True)[:15]
+        )
+        return f"""
 RESUMEN EXTENDIDO DE INVESTIGADORES CON PUBLICACIONES Y PROYECTOS:
 
 ÁREAS OCDE PRINCIPALES:
-{", ".join([f"{area} ({count})" for area, count in sorted(area_counts.items(), key=lambda x: x[1], reverse=True)[:15]])}
+{top_areas}
 
 INVESTIGADORES CON SUS TRABAJOS:
 {chr(10).join(investigator_details[:15])}
 
-TOTAL DE INVESTIGADORES: {len(self.investigadores_data)}
+TOTAL DE INVESTIGADORES: {len(investigadores_list)}
 TOTAL DE ÁREAS: {len(self.all_areas)}
-TOTAL DE PUBLICACIONES: {len(DataCache.publicaciones_list)}
-TOTAL DE PROYECTOS: {len(DataCache.proyectos_list)}
+TOTAL DE PUBLICACIONES: {total_pub}
+TOTAL DE PROYECTOS: {total_proy}
 
 INSTRUCCIONES PARA BÚSQUEDA POR TÍTULOS:
 - Si el usuario menciona un título de publicación o proyecto específico, busca en los títulos mostrados arriba
@@ -244,6 +240,18 @@ INSTRUCCIONES PARA BÚSQUEDA POR TÍTULOS:
 - Ejemplo: "VALIDACION DE ESCALA SOLEDAD" → Alba Zambrano Constanzo
 """
 
+    def _create_investigators_summary_from_cache(self):
+        """Crea resumen de investigadores usando el DataCache compartido."""
+        try:
+            pub_by_rut = self._index_by_rut(DataCache.publicaciones_list)
+            proy_by_rut = self._index_by_rut(DataCache.proyectos_list)
+            self.investigadores_summary = self._build_summary(
+                self.investigadores_data,
+                pub_by_rut,
+                proy_by_rut,
+                total_pub=len(DataCache.publicaciones_list),
+                total_proy=len(DataCache.proyectos_list),
+            )
         except Exception as e:
             logger.error(f"Error creando resumen desde caché: {e}")
             self.investigadores_summary = "Error cargando resumen de investigadores"
@@ -251,74 +259,18 @@ INSTRUCCIONES PARA BÚSQUEDA POR TÍTULOS:
     def _create_investigators_summary_extended(
         self, df, publicaciones_data: list, proyectos_data: list
     ):
-        """Crea un resumen extendido de investigadores (versión archivo)."""
+        """Crea resumen de investigadores desde archivos (fallback)."""
         try:
-            area_counts = {}
-            investigator_details = []
-
-            pub_by_rut = {}
-            proy_by_rut = {}
-
-            for pub in publicaciones_data:
-                rut = pub.get("rut_ir")
-                if rut:
-                    if rut not in pub_by_rut:
-                        pub_by_rut[rut] = []
-                    pub_by_rut[rut].append(pub)
-
-            for proy in proyectos_data:
-                rut = proy.get("rut_ir")
-                if rut:
-                    if rut not in proy_by_rut:
-                        proy_by_rut[rut] = []
-                    proy_by_rut[rut].append(proy)
-
-            for _, inv in df.head(30).iterrows():
-                areas_str = inv.get("ocde_2", "")
-                if areas_str and areas_str != "nan":
-                    areas = areas_str.split(",")
-                else:
-                    areas = []
-                areas = [area.strip() for area in areas if area.strip()]
-
-                for area in areas:
-                    area_counts[area] = area_counts.get(area, 0) + 1
-
-                rut = inv.get("rut_ir")
-                publicaciones = pub_by_rut.get(rut, [])
-                proyectos = proy_by_rut.get(rut, [])
-
-                pub_titles = [pub.get("titulo", "")[:100] for pub in publicaciones[:3]]
-                proy_titles = [proy.get("titulo", "")[:100] for proy in proyectos[:3]]
-
-                inv_detail = f"- {inv['name']} (ID: {inv['id']}, RUT: {rut}, Áreas: {inv.get('ocde_2', 'N/A')})"
-                if pub_titles:
-                    inv_detail += f"\n  Publicaciones: {'; '.join(pub_titles)}"
-                if proy_titles:
-                    inv_detail += f"\n  Proyectos: {'; '.join(proy_titles)}"
-
-                investigator_details.append(inv_detail)
-
-            self.investigadores_summary = f"""
-RESUMEN EXTENDIDO DE INVESTIGADORES CON PUBLICACIONES Y PROYECTOS:
-
-ÁREAS OCDE PRINCIPALES:
-{", ".join([f"{area} ({count})" for area, count in sorted(area_counts.items(), key=lambda x: x[1], reverse=True)[:15]])}
-
-INVESTIGADORES CON SUS TRABAJOS:
-{chr(10).join(investigator_details[:15])}
-
-TOTAL DE INVESTIGADORES: {len(df)}
-TOTAL DE ÁREAS: {len(self.all_areas)}
-TOTAL DE PUBLICACIONES: {len(publicaciones_data)}
-TOTAL DE PROYECTOS: {len(proyectos_data)}
-
-INSTRUCCIONES PARA BÚSQUEDA POR TÍTULOS:
-- Si el usuario menciona un título de publicación o proyecto específico, busca en los títulos mostrados arriba
-- Si encuentras coincidencia parcial en título, devuelve el nombre del investigador asociado
-- Ejemplo: "VALIDACION DE ESCALA SOLEDAD" → Alba Zambrano Constanzo
-"""
-
+            pub_by_rut = self._index_by_rut(publicaciones_data)
+            proy_by_rut = self._index_by_rut(proyectos_data)
+            investigadores_list = df.head(MAX_INVESTIGATORS_PREVIEW).to_dict("records")
+            self.investigadores_summary = self._build_summary(
+                investigadores_list,
+                pub_by_rut,
+                proy_by_rut,
+                total_pub=len(publicaciones_data),
+                total_proy=len(proyectos_data),
+            )
         except Exception as e:
             logger.error(f"Error creando resumen extendido de investigadores: {e}")
             self.investigadores_summary = "Error cargando resumen extendido de investigadores"
@@ -327,7 +279,7 @@ INSTRUCCIONES PARA BÚSQUEDA POR TÍTULOS:
         """Crea el agente Agno."""
         try:
             self.agent = Agent(
-                model=Claude(id="claude-3-5-haiku-20241022"),
+                model=Claude(id=AI_MODEL_ID),
                 instructions=f"""Eres un asistente inteligente especializado en búsqueda de investigadoras del Observatorio de Género en Ciencia de la Universidad de La Frontera (UFRO).
 
 INFORMACIÓN DE INVESTIGADORES CON PUBLICACIONES Y PROYECTOS:

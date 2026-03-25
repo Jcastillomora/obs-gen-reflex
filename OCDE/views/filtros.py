@@ -38,37 +38,6 @@ def unselected_area_chip(area: str) -> rx.Component:
 
 def areas_selector() -> rx.Component:
     return rx.vstack(
-        rx.hstack(
-            # rx.heading(
-            #     "Filtrar por Disciplina OCDE nivel 2"
-            #     + f" ({State.selected_areas.length()})",
-            #     class_name="text-sm sm:text-lg text-gray-700 font-semibold p-2",
-            # ),
-            rx.hstack(
-                # rx.button(
-                #     rx.icon("plus", size=16),
-                #     "Todas",
-                #     variant="soft",
-                #     size="2",
-                #     on_click=State.select_all_areas,
-                #     color_scheme="green",
-                #     cursor="pointer",
-                # ),
-                # rx.button(
-                #     rx.icon("trash", size=16),
-                #     "Limpiar",
-                #     variant="soft",
-                #     size="2",
-                #     on_click=State.clear_areas,
-                #     color_scheme="tomato",
-                #     cursor="pointer",
-                # ),
-                spacing="2",
-                class_name="px-2",
-            ),
-            justify="between",
-            width="100%",
-        ),
         rx.callout(
             "Pronto actualizaremos publicaciones, proyectos y perfiles de investigadoras.",
             icon="info",
@@ -103,40 +72,6 @@ def areas_selector() -> rx.Component:
             width="100%",
         ),
 
-        # nuevo
-        # rx.hstack(
-        #     rx.text("Búsqueda por línea de investigación según disciplina OCDE nivel 2", class_name="text-sm sm:text-lg text-gray-700 font-semibold"),
-        #     rx.select(
-        #         items=State.sorted_areas,
-        #         on_change=lambda e: State.set_selected_area_temp(e),
-        #         placeholder="Selecciona un área",
-        #         size="2",
-        #         color_scheme="indigo",
-        #         variant="classic",
-        #         style={"minWidth": "300px"},
-        #         class_name="font-semibold",
-        #     ),
-        #     rx.button(
-        #         rx.icon("plus", size=16),
-        #         "Agregar área",
-        #         on_click=State.add_selected_area,
-        #         variant="soft",
-        #         size="2",
-        #         color_scheme="indigo",
-        #     ),
-        #     rx.button(
-        #         rx.icon("trash", size=16),
-        #         "Limpiar área",
-        #         variant="soft",
-        #         size="2",
-        #         on_click=State.clear_areas,
-        #         color_scheme="tomato",
-        #         cursor="pointer",
-        #     ),
-        #     spacing="2",
-        #     reset_on_submit=True,
-        #     class_name="w-full",
-        # ),
         rx.box(
             # Primera fila: texto
             rx.text(
@@ -191,22 +126,7 @@ def areas_selector() -> rx.Component:
             spacing="2",
             width="100%",
         ),
-
-        # rx.hstack(
-        #     rx.divider(),
-        #     rx.foreach(State.selected_areas, selected_area_chip),
-        #     wrap="wrap",
-        #     spacing="2",
-        #     justify_content="start",
-        # ),
         rx.divider(),
-        # rx.hstack(
-        #     rx.foreach(State.all_areas, unselected_area_chip),
-        #     wrap="wrap",
-        #     spacing="2",
-        #     justify_content="start",
-        # ),
-        # spacing="4",
         align_items="center",
         width="100%",
         class_name="bg-white shadow-lg lg:px-50 p-5 py-5",
