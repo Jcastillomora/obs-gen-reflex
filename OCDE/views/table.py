@@ -37,23 +37,24 @@ def _show_pub(publicaciones: Publicaciones, index: int) -> rx.Component:
         rx.table.row_header_cell(publicaciones.año),
         rx.table.cell(publicaciones.titulo),
         rx.table.cell(publicaciones.revista),
-        rx.table.cell(rx.button(
-            "publicación", 
-            size="1",
-            radius="full",
-            on_click=rx.redirect(publicaciones.url, is_external=True),
-            )
-        ),
-        rx.table.cell(
-            rx.vstack(
-                rx.script(
-                    "_altmetric_embed_init();"
-                ),
-                rx.html(
-                    f'<div class="altmetric-embed" data-badge-popover="top" data-badge-type="2" data-hide-no-mentions="true" data-doi="{publicaciones.doi}"></div>'
-                )
-            ),        
-        ),
+        rx.table.cell(publicaciones.indexacion),
+        # rx.table.cell(rx.button(
+        #     "publicación", 
+        #     size="1",
+        #     radius="full",
+        #     on_click=rx.redirect(publicaciones.url, is_external=True),
+        #     )
+        # ),
+        # rx.table.cell(
+        #     rx.vstack(
+        #         rx.script(
+        #             "_altmetric_embed_init();"
+        #         ),
+        #         rx.html(
+        #             f'<div class="altmetric-embed" data-badge-popover="top" data-badge-type="2" data-hide-no-mentions="true" data-doi="{publicaciones.doi}"></div>'
+        #         )
+        #     ),        
+        # ),
         align="center",
         size="2",
         class_name="bg-white text-indigo-900 text-sm",
@@ -220,8 +221,9 @@ def pub_table() -> rx.Component:
                     _header_cell("Año", "calendar"),
                     _header_cell("Título", "notebook-pen"),
                     _header_cell("Revista", "book-open-text"),
-                    _header_cell("Link", "external-link"),
-                    _header_cell("Altmetric", "badge"),
+                    _header_cell("Indexación", "database"),
+                    # _header_cell("Link", "external-link"),
+                    # _header_cell("Altmetric", "badge"),
                 ),
                 class_name="w-full bg-indigo-400",
             ),

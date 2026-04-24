@@ -23,17 +23,18 @@ class Investigador(rx.Base):
 
 # modelo de la base de datos para las publicaciones
 class Publicaciones(rx.Base):
-    año: str
-    titulo: str
-    revista: str
-    cuartil: str
-    rut_ir: str
-    genero: str
-    autor: str
-    wos_id: str
-    liderado: str
-    url: str
-    doi: str
+    año: str = "Sin info"
+    titulo: str = "Sin info"
+    revista: str = "Sin info"
+    # cuartil: str
+    rut_ir: str = ""
+    # genero: str
+    autor: str = "Sin info"
+    # wos_id: str
+    # liderado: str
+    indexacion: str = "Sin info"
+    # url: str
+    # doi: str
 
 # modelo de la base de datos para los proyectos
 class Proyectos(rx.Base):

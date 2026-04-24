@@ -93,7 +93,7 @@ class DataCache:
             # Validar columnas requeridas
             required_academicas = {"id", "rut_ir", "name", "ocde_2", "orcid", "grado_mayor"}
             required_proyectos = {"rut_ir", "año", "ocde_2", "rol", "codigo", "titulo"}
-            required_publicaciones = {"rut_ir", "doi"}
+            required_publicaciones = {"rut_ir"}
             cls._validate_columns(cls.df_academicas, required_academicas, "academicas")
             cls._validate_columns(cls.df_proyectos, required_proyectos, "proyectos")
             cls._validate_columns(cls.df_publicaciones, required_publicaciones, "publicaciones")
@@ -182,7 +182,18 @@ class DataCache:
         """Limpia y normaliza datos de publicaciones."""
         df = cls.df_publicaciones
         df = df.replace("", np.nan)
-        df["doi"] = df["doi"].astype(str).replace("nan", "")
+        # Campos de texto: rellenar NaN con cadena vacía
+        # Año: solo enteros en rango [1981, año actual], el resto "Sin info"
+        import datetime
+        current_year = datetime.date.today().year
+        if "año" in df.columns:
+            años_num = pd.to_numeric(df["año"], errors="coerce")
+            df["año"] = años_num.apply(
+                lambda x: str(int(x)) if pd.notna(x) and 1981 <= int(x) <= current_year else "Sin info"
+            )
+        for col in ["titulo", "revista", "autor", "indexacion"]:
+            if col in df.columns:
+                df[col] = df[col].astype(str).replace("nan", "Sin info")
         cls.df_publicaciones = df
     
     @classmethod
