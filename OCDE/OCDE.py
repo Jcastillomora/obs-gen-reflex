@@ -282,7 +282,7 @@ def investigador_card(
                 ),
                 rx.vstack(
                     rx.heading(
-                        inv["name"],
+                        inv["nombre"] + " " + inv["apellido1"] + " " + inv["apellido2"],
                         size="4",
                         class_name="text-indigo-900",
                     ),
@@ -395,7 +395,7 @@ def investigator_page():
                         ),
                         rx.box(
                             rx.text(
-                                f"{State.current_investigator.name}",
+                                State.current_investigator_fullname,
                                 class_name="text-3xl font-bold text-white p-2",
                             ),
                             rx.text(
@@ -517,7 +517,7 @@ def investigator_page():
                         ),
                         rx.box(
                             rx.text(
-                                f"{State.current_investigator.name}",
+                                State.current_investigator_fullname,
                                 class_name="text-2xl font-semibold text-white p-1",
                             ),
                             rx.text(

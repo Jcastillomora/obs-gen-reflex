@@ -163,44 +163,90 @@ def ai_search_box() -> rx.Component:
 
 def simple_ai_search_replace() -> rx.Component:
     """
-    CERO renders mientras escribe - búsqueda solo bajo demanda.
+    Búsqueda avanzada con IA: input + botón buscar + botón limpiar + loader + resumen.
     """
-    return rx.hstack(
-        rx.input(
-            placeholder="Buscar con IA: 'investigadoras en biotecnología', 'expertas en energías renovables'...",
-            value=State.ai_search_input,  # Solo texto visible
-            on_change=State.set_ai_search_input,  # Solo actualiza texto
-            on_key_down=State.handle_ai_search_enter,  # Busca con Enter
-            size="3",
-            # style={
-            #     "flex": "1",
-            #     "borderRadius": "8px",
-            #     "transition": "border-color 0.05s ease",  # Ultra optimizado
-            #     "contain": "layout style paint",
-            # },
-            # class_name="border-gray-300 focus:border-indigo-500 bg-neutral-300 text-indigo-900",
-            # color_scheme="indigo",
-            spell_check=False,
-            color="black",
-            class_name="w-full border-gray-300 border-indigo-500 focus:ring-2 focus:ring-indigo-200",
+    return rx.vstack(
+        # Fila de input + botones
+        rx.flex(
+            rx.input(
+                placeholder="Ej: 'investigadoras en biotecnología', 'expertas en biología celular'...",
+                value=State.ai_search_input,
+                on_change=State.set_ai_search_input,
+                on_key_down=State.handle_ai_search_enter,
+                size="3",
+                spell_check=False,
+                color="black",
+                class_name="flex-1 min-w-0 border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200",
+            ),
+            rx.button(
+                rx.cond(
+                    State.ai_search_loading,
+                    rx.spinner(size="2"),
+                    rx.icon("sparkles", size=16),
+                ),
+                rx.text("Buscar", class_name="hidden sm:inline"),
+                on_click=State.perform_ai_search,
+                size="3",
+                color_scheme="indigo",
+                variant="solid",
+                disabled=State.ai_search_loading,
+                style={"cursor": "pointer", "flex-shrink": "0"},
+            ),
+            rx.cond(
+                State.ai_search_query != "",
+                rx.button(
+                    rx.icon("x", size=16),
+                    rx.text("Limpiar", class_name="hidden sm:inline"),
+                    on_click=State.clear_ai_search,
+                    size="3",
+                    color_scheme="tomato",
+                    variant="soft",
+                    style={"cursor": "pointer", "flex-shrink": "0"},
+                ),
+            ),
+            spacing="3",
+            width="100%",
+            align="center",
+            wrap="nowrap",
         ),
-        rx.button(
-            rx.icon("sparkles", size=16),
-            "Buscar",
-            on_click=State.perform_ai_search,  # Busca al hacer clic
-            size="2",
-            color_scheme="indigo",
-            variant="solid",
-            disabled=State.ai_search_loading,
-            loading=State.ai_search_loading,
-            style={
-                "cursor": "pointer",
-            },
+        # Loader mientras la IA trabaja
+        rx.cond(
+            State.ai_search_loading,
+            rx.hstack(
+                rx.spinner(size="2", color="indigo"),
+                rx.text(
+                    "Analizando tu consulta con IA...",
+                    class_name="text-sm text-indigo-600 font-medium",
+                ),
+                spacing="2",
+                align="center",
+                class_name="p-2 bg-indigo-50 rounded-lg border border-indigo-200 w-full",
+            ),
+        ),
+        # Resumen de resultados
+        rx.cond(
+            State.ai_search_results_summary != "",
+            rx.hstack(
+                rx.icon("brain-circuit", size=15, color="rgb(99, 102, 241)"),
+                rx.text(
+                    State.ai_search_results_summary,
+                    class_name="text-sm text-indigo-700",
+                ),
+                spacing="2",
+                align="center",
+                class_name="p-2 bg-indigo-50 rounded-lg border border-indigo-100 w-full",
+            ),
+        ),
+        # Error
+        rx.cond(
+            State.ai_search_error != "",
+            rx.callout(
+                State.ai_search_error,
+                icon="triangle-alert",
+                color_scheme="red",
+                size="1",
+            ),
         ),
         spacing="2",
         width="100%",
-        align="center",
-        style={
-            "contain": "layout style",  # Optimización de rendering
-        },
     )

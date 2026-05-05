@@ -3,16 +3,31 @@ import logging
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 import pandas as pd
+import pypdf
 from dotenv import load_dotenv
 
 load_dotenv()
 
 from agno.agent import Agent
 from agno.models.anthropic import Claude
-from agno.knowledge.reader.pdf_reader import PDFReader
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+def _read_pdf_text(pdf_path: Path) -> str:
+    """Lee el texto de un PDF usando pypdf directamente."""
+    try:
+        reader = pypdf.PdfReader(str(pdf_path))
+        pages_text = []
+        for page in reader.pages:
+            text = page.extract_text()
+            if text:
+                pages_text.append(text)
+        return "\n\n".join(pages_text)
+    except Exception as e:
+        logger.error(f"Error leyendo PDF {pdf_path.name} con pypdf: {e}")
+        return ""
 
 
 class SimpleDocument:
@@ -24,19 +39,18 @@ class SimpleDocument:
         self.file_type = file_type
 
 
+# Ruta absoluta a assets/: pdf_agent.py → chatbot/ → backend/ → OCDE/ → raíz proyecto
+_PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
+_ASSETS_DIR = _PROJECT_ROOT / "assets"
+_UPLOADS_DIR = _ASSETS_DIR / "uploads"
+
+
 class AgnoDocumentChatbot:
     """
-    Chatbot usando Agno framework con Agent, PDFReader y Claude para PDFs y Excel.
+    Chatbot usando Agno framework con Agent y Claude para PDFs y Excel.
     """
 
-    def __init__(self, documents_directory: str = "assets/"):
-        """
-        Inicializa el chatbot con Agno.
-
-        Args:
-            documents_directory: Directorio que contiene los archivos PDF y Excel
-        """
-        self.documents_directory = documents_directory
+    def __init__(self):
         self.agent: Optional[Agent] = None
         self.documents = []
         self._initialize()
@@ -88,40 +102,46 @@ PRIVACIDAD Y CONFIDENCIALIDAD:
             logger.error(f"Error inicializando Agno Agent: {e}")
 
     def _load_documents(self):
-        """Carga documentos PDF y Excel usando PDFReader de Agno y pandas."""
+        """Carga documentos PDF y Excel desde assets/ y assets/uploads/."""
         try:
-            if not os.path.exists(self.documents_directory):
-                logger.warning(f"Directorio {self.documents_directory} no existe")
+            logger.info(f"Buscando documentos en: {_ASSETS_DIR} y {_UPLOADS_DIR}")
+
+            if not _ASSETS_DIR.exists():
+                logger.warning(f"Directorio assets/ no existe: {_ASSETS_DIR}")
                 return
 
-            # Cargar archivos PDF (directorio raíz + uploads/)
-            pdf_files = list(Path(self.documents_directory).glob("*.pdf")) + list(
-                Path(self.documents_directory).glob("uploads/*.pdf")
-            )
-            excel_files = list(Path(self.documents_directory).glob("*.xlsx")) + list(
-                Path(self.documents_directory).glob("*.xls")
+            # PDFs en assets/ y en assets/uploads/
+            pdf_files = list(_ASSETS_DIR.glob("*.pdf"))
+            if _UPLOADS_DIR.exists():
+                pdf_files += list(_UPLOADS_DIR.glob("*.pdf"))
+
+            # Excel solo en assets/ raíz (archivos de datos)
+            excel_files = list(_ASSETS_DIR.glob("*.xlsx")) + list(_ASSETS_DIR.glob("*.xls"))
+
+            logger.info(
+                f"Encontrados: {len(pdf_files)} PDFs, {len(excel_files)} Excel "
+                f"(uploads dir existe: {_UPLOADS_DIR.exists()})"
             )
 
             if not pdf_files and not excel_files:
-                logger.warning(
-                    f"No se encontraron archivos PDF o Excel en {self.documents_directory}"
-                )
+                logger.warning(f"No se encontraron documentos en {_ASSETS_DIR}")
                 return
 
             if pdf_files:
-                pdf_reader = PDFReader()
                 for pdf_file in pdf_files:
                     try:
                         logger.info(f"Cargando PDF: {pdf_file.name}")
-                        documents = pdf_reader.read(str(pdf_file))
-
-                        for doc in documents:
+                        text = _read_pdf_text(pdf_file)
+                        if text.strip():
                             wrapped_doc = SimpleDocument(
-                                content=f"ARCHIVO PDF: {pdf_file.name}\n\n{doc.content}",
+                                content=f"ARCHIVO PDF: {pdf_file.name}\n\n{text}",
                                 file_name=pdf_file.name,
                                 file_type="PDF",
                             )
                             self.documents.append(wrapped_doc)
+                            logger.info(f"PDF cargado exitosamente: {pdf_file.name} ({len(text)} caracteres)")
+                        else:
+                            logger.warning(f"PDF sin texto extraíble (posiblemente imagen): {pdf_file.name}")
                     except Exception as e:
                         logger.error(f"Error leyendo PDF {pdf_file.name}: {e}")
 
@@ -261,13 +281,15 @@ PRIVACIDAD Y CONFIDENCIALIDAD:
             return None
 
     def _create_context(self) -> str:
-        """Crea contexto limitado a partir de los documentos."""
+        """Crea contexto con todos los documentos disponibles."""
         if not self.documents:
             return ""
 
         context_parts = []
         total_length = 0
-        max_context_length = 15000
+        # Claude Haiku tiene ventana de 200k tokens (~800k chars).
+        # Usamos 400k como límite seguro para dejar espacio a instrucciones y respuesta.
+        max_context_length = 400_000
 
         for doc in self.documents:
             file_name = getattr(doc, "file_name", "Desconocido")
@@ -276,15 +298,16 @@ PRIVACIDAD Y CONFIDENCIALIDAD:
             doc_content = f"\n\n=== DOCUMENTO: {file_name} (Tipo: {file_type}) ===\n{doc.content}\n"
 
             if total_length + len(doc_content) > max_context_length:
-                remaining = max_context_length - total_length
-                if remaining > 100:
-                    doc_content = doc_content[:remaining] + "...\n[DOCUMENTO TRUNCADO]"
-                    context_parts.append(doc_content)
+                logger.warning(
+                    f"Contexto lleno ({total_length:,} chars). "
+                    f"Omitiendo: {file_name} ({len(doc_content):,} chars)"
+                )
                 break
 
             context_parts.append(doc_content)
             total_length += len(doc_content)
 
+        logger.info(f"Contexto generado: {total_length:,} chars con {len(context_parts)} documentos")
         return "".join(context_parts)
 
     def is_ready(self) -> bool:
@@ -324,32 +347,51 @@ PRIVACIDAD Y CONFIDENCIALIDAD:
 
     def get_available_documents(self) -> List[str]:
         """Obtiene la lista de documentos disponibles."""
-        if not os.path.exists(self.documents_directory):
-            return []
-
         documents = []
-        documents.extend([f.name for f in Path(self.documents_directory).glob("*.pdf")])
-        documents.extend(
-            [f.name for f in Path(self.documents_directory).glob("*.xlsx")]
-        )
-        documents.extend([f.name for f in Path(self.documents_directory).glob("*.xls")])
-
+        if _ASSETS_DIR.exists():
+            documents.extend([f.name for f in _ASSETS_DIR.glob("*.pdf")])
+            documents.extend([f.name for f in _ASSETS_DIR.glob("*.xlsx")])
+            documents.extend([f.name for f in _ASSETS_DIR.glob("*.xls")])
+        if _UPLOADS_DIR.exists():
+            documents.extend([f.name for f in _UPLOADS_DIR.glob("*.pdf")])
         return documents
 
     def reload(self):
         """Recarga documentos y recrea el agente (usar tras subir nuevos archivos)."""
-        self.documents = []
-        self.agent = None
-        self._initialize()
-        logger.info("Agno Agent recargado con documentos actualizados")
+        old_documents = self.documents[:]
+        old_agent = self.agent
+        try:
+            self.documents = []
+            self.agent = None
+            self._initialize()
+            if self.agent is None:
+                # Restaurar estado anterior si el reload falló
+                self.documents = old_documents
+                self.agent = old_agent
+                raise RuntimeError(
+                    f"No se pudo inicializar el agente. "
+                    f"Documentos encontrados: {len(self.documents)}. "
+                    f"Verifica ANTHROPIC_API_KEY y que los PDFs tengan texto extraíble."
+                )
+            logger.info(
+                f"Agno Agent recargado con {len(self.documents)} documentos actualizados"
+            )
+        except RuntimeError:
+            raise
+        except Exception as e:
+            # Restaurar estado anterior ante cualquier error inesperado
+            self.documents = old_documents
+            self.agent = old_agent
+            raise RuntimeError(f"Error durante el reload del chatbot: {e}") from e
 
     def get_agent_info(self) -> Dict[str, Any]:
         """Obtiene información sobre el estado del agent."""
         return {
             "ready": self.is_ready(),
-            "documents_directory": self.documents_directory,
+            "assets_dir": str(_ASSETS_DIR),
+            "uploads_dir": str(_UPLOADS_DIR),
             "available_documents": self.get_available_documents(),
-            "model": "Claude Sonnet 4.5 (via Agno)",
+            "model": "Claude Haiku 4.5 (via Agno)",
             "documents_loaded": len(self.documents),
             "framework": "Agno",
             "supports_pdf": True,

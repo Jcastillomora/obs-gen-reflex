@@ -218,6 +218,140 @@ def documents_list(items, label: str) -> rx.Component:
 
 
 # =========================================================
+# CARD SUBIR PUBLICACIONES
+# =========================================================
+
+def pub_sync_card() -> rx.Component:
+    return rx.card(
+        rx.vstack(
+            rx.heading("Actualizar publicaciones", size="5", class_name="text-indigo-700"),
+            rx.text(
+                "Sube el Excel generado por el scraper. "
+                "Debe contener al menos la columna rut_ir. "
+                "El servidor recargará los datos automáticamente sin reiniciarse.",
+                size="2",
+                class_name="text-gray-500",
+            ),
+            rx.callout(
+                rx.text(
+                    "Columnas esperadas: ",
+                    rx.code("año"),
+                    ", ",
+                    rx.code("titulo"),
+                    ", ",
+                    rx.code("revista"),
+                    ", ",
+                    rx.code("rut_ir"),
+                    ", ",
+                    rx.code("indexacion"),
+                    " (autor es opcional)",
+                ),
+                icon="info",
+                color_scheme="indigo",
+                size="1",
+                class_name="w-full",
+            ),
+            rx.upload(
+                rx.vstack(
+                    rx.icon("table-2", size=32, class_name="text-indigo-400"),
+                    rx.text(
+                        "Arrastra el Excel aquí o haz clic para seleccionar",
+                        size="2",
+                        class_name="text-gray-500 text-center",
+                    ),
+                    rx.text(
+                        rx.selected_files("pub_upload"),
+                        size="1",
+                        class_name="text-indigo-600",
+                    ),
+                    spacing="2",
+                    align="center",
+                ),
+                id="pub_upload",
+                accept={
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"],
+                    "application/vnd.ms-excel": [".xls"],
+                },
+                max_files=1,
+                class_name="border-2 border-dashed border-indigo-300 rounded-lg p-6 w-full cursor-pointer hover:border-indigo-500 transition-colors",
+            ),
+            rx.button(
+                rx.cond(
+                    AdminState.is_uploading_pub,
+                    rx.hstack(rx.spinner(size="2"), rx.text("Cargando..."), spacing="2"),
+                    rx.text("Subir y recargar"),
+                ),
+                on_click=AdminState.upload_publicaciones(
+                    rx.upload_files(upload_id="pub_upload")
+                ),
+                disabled=AdminState.is_uploading_pub,
+                color_scheme="indigo",
+                width="100%",
+            ),
+            rx.cond(
+                AdminState.pub_upload_status != "",
+                rx.callout(
+                    AdminState.pub_upload_status,
+                    icon=rx.cond(
+                        AdminState.pub_upload_status.contains("✅"),
+                        "check",
+                        "alert-circle",
+                    ),
+                    color_scheme=rx.cond(
+                        AdminState.pub_upload_status.contains("✅"),
+                        "green",
+                        "tomato",
+                    ),
+                ),
+            ),
+            rx.separator(width="100%"),
+            rx.vstack(
+                rx.text("Sincronización automática", weight="bold", size="3"),
+                rx.text(
+                    "Ejecuta el scraper directamente desde el servidor. "
+                    "Requiere acceso a extranet.ufro.cl y puede tardar varios minutos.",
+                    size="2",
+                    class_name="text-gray-500",
+                ),
+                rx.button(
+                    rx.cond(
+                        AdminState.is_syncing,
+                        rx.hstack(rx.spinner(size="2"), rx.text("Sincronizando..."), spacing="2"),
+                        rx.hstack(rx.icon("refresh-cw", size=16), rx.text("Sincronizar desde extranet"), spacing="2"),
+                    ),
+                    on_click=AdminState.sincronizar_publicaciones,
+                    disabled=AdminState.is_syncing,
+                    color_scheme="blue",
+                    variant="soft",
+                ),
+                rx.cond(
+                    AdminState.sync_status != "",
+                    rx.callout(
+                        AdminState.sync_status,
+                        icon=rx.cond(
+                            AdminState.sync_status.contains("✅"),
+                            "check",
+                            "alert-circle",
+                        ),
+                        color_scheme=rx.cond(
+                            AdminState.sync_status.contains("✅"),
+                            "green",
+                            "tomato",
+                        ),
+                        size="1",
+                    ),
+                ),
+                spacing="3",
+                width="100%",
+            ),
+            spacing="4",
+            width="100%",
+        ),
+        class_name="w-full max-w-2xl",
+    )
+
+
+# =========================================================
 # CONTENIDO ADMIN (firmado)
 # =========================================================
 
@@ -240,6 +374,7 @@ def admin_content() -> rx.Component:
                     rx.tabs.trigger("Subir nuevo", value="upload"),
                     rx.tabs.trigger("Reportes", value="reportes"),
                     rx.tabs.trigger("Documentos", value="documentos"),
+                    rx.tabs.trigger("Publicaciones", value="publicaciones"),
                 ),
                 rx.tabs.content(
                     upload_form(),
@@ -254,6 +389,11 @@ def admin_content() -> rx.Component:
                 rx.tabs.content(
                     documents_list(AdminState.documentos_admin, "documentos"),
                     value="documentos",
+                    class_name="py-4",
+                ),
+                rx.tabs.content(
+                    pub_sync_card(),
+                    value="publicaciones",
                     class_name="py-4",
                 ),
                 default_value="upload",

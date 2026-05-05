@@ -6,7 +6,9 @@ from datetime import datetime
 class Investigador(rx.Base):
     id: int
     rut_ir: str
-    name: str
+    nombre: str
+    apellido1: str
+    apellido2: str = ""
     orcid: Optional[str] = None
     ocde_2: Optional[str] = None
     ocde_3: Optional[str] = None

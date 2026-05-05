@@ -1,7 +1,7 @@
-# ai_search_agent.py - Versión optimizada con caché compartido
+# ai_search_agent.py - Versión mejorada con Agno tools + output_schema
 """
 AI Search Agent usando Agno framework para búsqueda inteligente.
-OPTIMIZADO: Usa DataCache compartido para evitar cargar Excel dos veces.
+OPTIMIZADO: Usa DataCache compartido + @tool functions + Pydantic output_schema.
 
 UBICACIÓN: OCDE/backend/chatbot/ai_search_agent.py
 """
@@ -9,19 +9,21 @@ UBICACIÓN: OCDE/backend/chatbot/ai_search_agent.py
 import os
 import logging
 from typing import Optional, List, Dict, Any
+
 from dotenv import load_dotenv
+from pydantic import BaseModel, Field
 
 load_dotenv()
 
 from agno.agent import Agent
 from agno.models.anthropic import Claude
+from agno.tools.decorator import tool
 
 # Importar caché compartido
 try:
     from ..data_cache import DataCache
     USE_SHARED_CACHE = True
 except ImportError:
-    # Fallback si no se puede importar
     USE_SHARED_CACHE = False
     import pandas as pd
 
@@ -29,28 +31,287 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Configuración del agente
-AI_MODEL_ID = "claude-3-5-haiku-20241022"
-MAX_INVESTIGATORS_PREVIEW = 15  # Máx investigadores incluidos en el resumen del agente
+AI_MODEL_ID = "claude-haiku-4-5-20251001"
 
+
+# =========================================================
+# MODELO PYDANTIC PARA SALIDA ESTRUCTURADA
+# =========================================================
+
+class SearchResult(BaseModel):
+    tipo_busqueda: str = Field(
+        ...,
+        description="Tipo detectado: nombre | area | titulo | filtro_numerico | rol | hibrida"
+    )
+    areas_detectadas: List[str] = Field(
+        default_factory=list,
+        description="Áreas OCDE detectadas (usar nombres exactos de listar_areas_ocde)"
+    )
+    nombres_detectados: List[str] = Field(
+        default_factory=list,
+        description="Nombres completos de investigadoras detectados"
+    )
+    titulos_detectados: List[str] = Field(
+        default_factory=list,
+        description="Fragmentos de títulos de publicaciones o proyectos"
+    )
+    terminos_busqueda: List[str] = Field(
+        default_factory=list,
+        description="Términos generales para búsqueda de texto"
+    )
+    min_proyectos: Optional[int] = Field(
+        None,
+        description="Cantidad mínima de proyectos requerida (null si no aplica)"
+    )
+    min_publicaciones: Optional[int] = Field(
+        None,
+        description="Cantidad mínima de publicaciones requerida (null si no aplica)"
+    )
+    rol_filtro: Optional[str] = Field(
+        None,
+        description="Filtro de rol: 'ir' (investigadora responsable) o 'co-i' (co-investigadora)"
+    )
+    resumen: str = Field(
+        "",
+        description="Explicación breve de qué se buscó y cuántos resultados hay"
+    )
+
+
+# =========================================================
+# HERRAMIENTAS @tool QUE ACCEDEN AL DATACACHE
+# =========================================================
+
+@tool
+def listar_areas_ocde() -> str:
+    """Lista todas las áreas OCDE disponibles en el repositorio.
+    Úsala para verificar nombres exactos de áreas antes de incluirlas en areas_detectadas.
+    """
+    if not USE_SHARED_CACHE or not DataCache.is_initialized():
+        return "Datos no disponibles"
+    areas = DataCache.all_areas
+    return f"Áreas OCDE disponibles ({len(areas)}):\n" + "\n".join(f"- {a}" for a in areas)
+
+
+@tool
+def buscar_investigadoras_por_nombre(nombre: str) -> str:
+    """Busca investigadoras cuyo nombre o apellido contenga el texto dado.
+    Retorna nombre completo, ID, conteos de publicaciones y proyectos.
+
+    Args:
+        nombre: Nombre o fragmento de nombre a buscar (insensible a mayúsculas).
+    """
+    if not USE_SHARED_CACHE or not DataCache.is_initialized():
+        return "Datos no disponibles"
+
+    nombre_lower = nombre.lower()
+    resultados = []
+    for inv in DataCache.investigadores_list:
+        nombre_completo = (
+            f"{inv.get('nombre', '')} {inv.get('apellido1', '')} {inv.get('apellido2', '')}".strip()
+        )
+        if nombre_lower in nombre_completo.lower():
+            rut = inv.get("rut_ir", "")
+            pubs = DataCache.get_publicaciones_count(rut)
+            proyectos = DataCache.get_proyectos_count(rut)
+            resultados.append(
+                f"- {nombre_completo} (ID: {inv.get('id')}, Pub: {pubs}, Proy: {proyectos})"
+            )
+
+    if not resultados:
+        return f"No se encontraron investigadoras con nombre '{nombre}'"
+    return f"Investigadoras encontradas ({len(resultados)}):\n" + "\n".join(resultados[:20])
+
+
+@tool
+def buscar_investigadoras_por_area(area: str) -> str:
+    """Busca investigadoras que trabajen en un área OCDE específica.
+    Retorna lista de nombres con sus áreas.
+
+    Args:
+        area: Nombre o fragmento del área OCDE a buscar (insensible a mayúsculas).
+    """
+    if not USE_SHARED_CACHE or not DataCache.is_initialized():
+        return "Datos no disponibles"
+
+    area_lower = area.lower()
+    resultados = []
+    for inv in DataCache.investigadores_list:
+        ocde = str(inv.get("ocde_2", ""))
+        if area_lower in ocde.lower():
+            nombre = (
+                f"{inv.get('nombre', '')} {inv.get('apellido1', '')} {inv.get('apellido2', '')}".strip()
+            )
+            resultados.append(f"- {nombre} | Áreas: {ocde[:100]}")
+
+    if not resultados:
+        return f"No se encontraron investigadoras en el área '{area}'"
+    return f"Investigadoras en área '{area}' ({len(resultados)} encontradas):\n" + "\n".join(resultados[:20])
+
+
+@tool
+def buscar_publicacion_por_titulo(fragmento: str) -> str:
+    """Busca publicaciones cuyo título contenga el texto dado y retorna las investigadoras asociadas.
+
+    Args:
+        fragmento: Fragmento del título de la publicación (insensible a mayúsculas).
+    """
+    if not USE_SHARED_CACHE or not DataCache.is_initialized():
+        return "Datos no disponibles"
+
+    fragmento_lower = fragmento.lower()
+    resultados = []
+    ruts_vistos: set = set()
+
+    # Construir índice rut → nombre
+    rut_a_nombre = {
+        inv.get("rut_ir", ""): (
+            f"{inv.get('nombre', '')} {inv.get('apellido1', '')} {inv.get('apellido2', '')}".strip()
+        )
+        for inv in DataCache.investigadores_list
+    }
+
+    for pub in DataCache.publicaciones_list:
+        titulo = str(pub.get("titulo", "")).lower()
+        if fragmento_lower in titulo:
+            rut = pub.get("rut_ir", "")
+            if rut not in ruts_vistos:
+                nombre = rut_a_nombre.get(rut, f"RUT {rut}")
+                resultados.append(f"- {nombre}: '{pub.get('titulo', '')[:100]}'")
+                ruts_vistos.add(rut)
+
+    if not resultados:
+        return f"No se encontraron publicaciones con '{fragmento}'"
+    return f"Publicaciones encontradas ({len(resultados)}):\n" + "\n".join(resultados[:15])
+
+
+@tool
+def buscar_proyecto_por_titulo(fragmento: str) -> str:
+    """Busca proyectos cuyo título contenga el texto dado y retorna las investigadoras asociadas.
+
+    Args:
+        fragmento: Fragmento del título del proyecto (insensible a mayúsculas).
+    """
+    if not USE_SHARED_CACHE or not DataCache.is_initialized():
+        return "Datos no disponibles"
+
+    fragmento_lower = fragmento.lower()
+    resultados = []
+    ruts_vistos: set = set()
+
+    rut_a_nombre = {
+        inv.get("rut_ir", ""): (
+            f"{inv.get('nombre', '')} {inv.get('apellido1', '')} {inv.get('apellido2', '')}".strip()
+        )
+        for inv in DataCache.investigadores_list
+    }
+
+    for proy in DataCache.proyectos_list:
+        titulo = str(proy.get("titulo", "")).lower()
+        if fragmento_lower in titulo:
+            rut = proy.get("rut_ir", "")
+            if rut not in ruts_vistos:
+                nombre = rut_a_nombre.get(rut, f"RUT {rut}")
+                resultados.append(f"- {nombre}: '{proy.get('titulo', '')[:100]}'")
+                ruts_vistos.add(rut)
+
+    if not resultados:
+        return f"No se encontraron proyectos con '{fragmento}'"
+    return f"Proyectos encontrados ({len(resultados)}):\n" + "\n".join(resultados[:15])
+
+
+@tool
+def buscar_por_termino_libre(termino: str) -> str:
+    """Búsqueda semántica amplia: busca el término en grado académico, títulos de publicaciones y proyectos.
+    Úsala cuando la consulta describe una línea de investigación o tema que puede no coincidir con áreas OCDE exactas.
+    Retorna nombres e IDs (sin datos de identificación personal) ordenados por relevancia.
+
+    Args:
+        termino: Término o frase a buscar (ej: "biología celular", "salud mental", "cambio climático").
+    """
+    if not USE_SHARED_CACHE or not DataCache.is_initialized():
+        return "Datos no disponibles"
+
+    termino_lower = termino.lower()
+    id_scores: dict = {}
+    id_a_inv: dict = {}
+
+    # Indexar por ID público (no por RUT)
+    for inv in DataCache.investigadores_list:
+        inv_id = inv.get("id")
+        rut = inv.get("rut_ir", "")
+        if inv_id:
+            id_a_inv[inv_id] = inv
+
+        # Buscar en grado_mayor (peso 2)
+        grado = str(inv.get("grado_mayor", "")).lower()
+        if termino_lower in grado:
+            id_scores[inv_id] = id_scores.get(inv_id, 0) + 2
+
+    # Buscar en títulos de publicaciones (peso 1)
+    rut_a_id = {inv.get("rut_ir", ""): inv.get("id") for inv in DataCache.investigadores_list}
+    for pub in DataCache.publicaciones_list:
+        rut = pub.get("rut_ir", "")
+        titulo = str(pub.get("titulo", "")).lower()
+        inv_id = rut_a_id.get(rut)
+        if termino_lower in titulo and inv_id:
+            id_scores[inv_id] = id_scores.get(inv_id, 0) + 1
+
+    # Buscar en títulos de proyectos (peso 1)
+    for proy in DataCache.proyectos_list:
+        rut = proy.get("rut_ir", "")
+        titulo = str(proy.get("titulo", "")).lower()
+        inv_id = rut_a_id.get(rut)
+        if termino_lower in titulo and inv_id:
+            id_scores[inv_id] = id_scores.get(inv_id, 0) + 1
+
+    if not id_scores:
+        return f"No se encontraron resultados para '{termino}' en grado académico, publicaciones o proyectos."
+
+    sorted_ids = sorted(id_scores.items(), key=lambda x: x[1], reverse=True)
+
+    resultados = []
+    for inv_id, score in sorted_ids[:30]:
+        inv = id_a_inv.get(inv_id, {})
+        nombre = f"{inv.get('nombre', '')} {inv.get('apellido1', '')} {inv.get('apellido2', '')}".strip()
+        pubs = DataCache.get_publicaciones_count(inv.get("rut_ir", ""))
+        proyectos = DataCache.get_proyectos_count(inv.get("rut_ir", ""))
+        resultados.append(f"- {nombre} (ID: {inv_id}, Pub: {pubs}, Proy: {proyectos}, Relevancia: {score})")
+
+    return (
+        f"Investigadoras relevantes para '{termino}' ({len(id_scores)} encontradas):\n"
+        + "\n".join(resultados)
+    )
+
+
+@tool
+def obtener_estadisticas() -> str:
+    """Obtiene estadísticas generales del repositorio: totales de investigadoras, publicaciones y proyectos."""
+    if not USE_SHARED_CACHE or not DataCache.is_initialized():
+        return "Datos no disponibles"
+    return (
+        f"Total investigadoras: {len(DataCache.investigadores_list)}\n"
+        f"Total publicaciones: {len(DataCache.publicaciones_list)}\n"
+        f"Total proyectos: {len(DataCache.proyectos_list)}\n"
+        f"Total áreas OCDE: {len(DataCache.all_areas)}"
+    )
+
+
+# =========================================================
+# CLASE PRINCIPAL DEL AGENTE
+# =========================================================
 
 class AgnoSearchAgent:
     """
     AI Search Agent usando Agno framework para búsqueda inteligente.
-    OPTIMIZADO: Usa DataCache compartido cuando está disponible.
+    Usa @tool functions para acceder al DataCache completo y output_schema
+    para retornar resultados estructurados sin parsing manual.
     """
 
     def __init__(self, data_directory: str = "./"):
-        """
-        Inicializa el agente de búsqueda con Agno.
-
-        Args:
-            data_directory: Directorio que contiene los archivos de datos
-        """
         self.data_directory = data_directory
         self.agent: Optional[Agent] = None
         self.investigadores_data = []
         self.all_areas = []
-        self.investigadores_summary = ""
         self._initialize()
 
     def _initialize(self):
@@ -68,26 +329,20 @@ class AgnoSearchAgent:
                 return
 
             self._create_agent()
-
             logger.info("Agno Search Agent inicializado correctamente")
 
         except Exception as e:
             logger.error(f"Error inicializando Agno Search Agent: {e}")
 
     def _load_data(self):
-        """
-        Carga y procesa datos de investigadores.
-        OPTIMIZADO: Usa DataCache compartido si está disponible.
-        """
+        """Carga datos desde DataCache compartido o archivos como fallback."""
         try:
             if USE_SHARED_CACHE:
                 self._load_from_shared_cache()
             else:
                 self._load_from_files()
-                
         except Exception as e:
             logger.error(f"Error cargando datos: {e}")
-            # Intentar fallback a archivos
             if USE_SHARED_CACHE:
                 logger.info("Intentando fallback a carga directa de archivos...")
                 self._load_from_files()
@@ -95,18 +350,13 @@ class AgnoSearchAgent:
     def _load_from_shared_cache(self):
         """Carga datos desde el DataCache compartido."""
         logger.info("📦 Usando DataCache compartido")
-        
-        # Inicializar caché si no está listo
+
         if not DataCache.is_initialized():
             DataCache.initialize(self.data_directory)
-        
-        # Usar datos del caché
+
         self.investigadores_data = DataCache.investigadores_list
         self.all_areas = DataCache.all_areas
-        
-        # Crear resumen extendido
-        self._create_investigators_summary_from_cache()
-        
+
         logger.info(
             f"Cargados desde caché: {len(self.investigadores_data)} investigadores, "
             f"{len(DataCache.publicaciones_list)} publicaciones, "
@@ -115,20 +365,16 @@ class AgnoSearchAgent:
         )
 
     def _load_from_files(self):
-        """Carga datos directamente desde archivos (fallback)."""
+        """Carga datos directamente desde archivos Excel (fallback)."""
         logger.info("📄 Cargando datos desde archivos Excel")
-        
-        import pandas as pd
-        
-        academicas_file = os.path.join(self.data_directory, "academicas.xlsx")
-        publicaciones_file = os.path.join(self.data_directory, "publicaciones_total.xlsx")
-        proyectos_file = os.path.join(self.data_directory, "proyectos_total.xlsx")
 
+        import pandas as pd
+
+        academicas_file = os.path.join(self.data_directory, "academicas.xlsx")
         if not os.path.exists(academicas_file):
             logger.error(f"Archivo {academicas_file} no encontrado")
             return
 
-        # Procesar investigadores
         df_academicas = pd.read_excel(academicas_file)
         df_academicas = df_academicas.replace("", None)
         df_academicas["id"] = pd.to_numeric(df_academicas["id"], errors="coerce")
@@ -144,21 +390,6 @@ class AgnoSearchAgent:
             .apply(lambda x: ", ".join(x.split("#")) if x and x != "nan" else "")
         )
 
-        publicaciones_data = []
-        proyectos_data = []
-
-        if os.path.exists(publicaciones_file):
-            df_pub = pd.read_excel(publicaciones_file)
-            publicaciones_data = df_pub.to_dict("records")
-
-        if os.path.exists(proyectos_file):
-            df_proy = pd.read_excel(proyectos_file)
-            proyectos_data = df_proy.to_dict("records")
-
-        self._create_investigators_summary_extended(
-            df_academicas, publicaciones_data, proyectos_data
-        )
-
         self.all_areas = sorted(
             df_academicas["ocde_2"]
             .dropna()
@@ -168,177 +399,49 @@ class AgnoSearchAgent:
             .unique()
             .tolist()
         )
-
         self.investigadores_data = df_academicas.to_dict("records")
 
         logger.info(
             f"Cargados desde archivos: {len(self.investigadores_data)} investigadores, "
-            f"{len(publicaciones_data)} publicaciones, "
-            f"{len(proyectos_data)} proyectos, "
             f"{len(self.all_areas)} áreas"
         )
 
-    def _index_by_rut(self, records: list) -> dict:
-        """Agrupa una lista de dicts por rut_ir."""
-        index = {}
-        for record in records:
-            rut = record.get("rut_ir")
-            if rut:
-                index.setdefault(rut, []).append(record)
-        return index
-
-    def _build_summary(
-        self,
-        investigadores_list: list,
-        pub_by_rut: dict,
-        proy_by_rut: dict,
-        total_pub: int,
-        total_proy: int,
-    ):
-        """Construye el resumen de investigadores para el prompt del agente."""
-        area_counts = {}
-        investigator_details = []
-
-        for inv in investigadores_list[:MAX_INVESTIGATORS_PREVIEW]:
-            areas_str = inv.get("ocde_2", "")
-            areas = [a.strip() for a in areas_str.split(",") if a.strip()] if areas_str and areas_str != "nan" else []
-            for area in areas:
-                area_counts[area] = area_counts.get(area, 0) + 1
-
-            rut = inv.get("rut_ir")
-            pub_titles = [p.get("titulo", "")[:100] for p in pub_by_rut.get(rut, [])[:3]]
-            proy_titles = [p.get("titulo", "")[:100] for p in proy_by_rut.get(rut, [])[:3]]
-
-            inv_detail = f"- {inv.get('name', 'N/A')} (ID: {inv.get('id', 'N/A')}, RUT: {rut}, Áreas: {inv.get('ocde_2', 'N/A')})"
-            if pub_titles:
-                inv_detail += f"\n  Publicaciones: {'; '.join(pub_titles)}"
-            if proy_titles:
-                inv_detail += f"\n  Proyectos: {'; '.join(proy_titles)}"
-            investigator_details.append(inv_detail)
-
-        top_areas = ", ".join(
-            f"{area} ({count})"
-            for area, count in sorted(area_counts.items(), key=lambda x: x[1], reverse=True)[:15]
-        )
-        return f"""
-RESUMEN EXTENDIDO DE INVESTIGADORES CON PUBLICACIONES Y PROYECTOS:
-
-ÁREAS OCDE PRINCIPALES:
-{top_areas}
-
-INVESTIGADORES CON SUS TRABAJOS:
-{chr(10).join(investigator_details[:15])}
-
-TOTAL DE INVESTIGADORES: {len(investigadores_list)}
-TOTAL DE ÁREAS: {len(self.all_areas)}
-TOTAL DE PUBLICACIONES: {total_pub}
-TOTAL DE PROYECTOS: {total_proy}
-
-INSTRUCCIONES PARA BÚSQUEDA POR TÍTULOS:
-- Si el usuario menciona un título de publicación o proyecto específico, busca en los títulos mostrados arriba
-- Si encuentras coincidencia parcial en título, devuelve el nombre del investigador asociado
-- Ejemplo: "VALIDACION DE ESCALA SOLEDAD" → Alba Zambrano Constanzo
-"""
-
-    def _create_investigators_summary_from_cache(self):
-        """Crea resumen de investigadores usando el DataCache compartido."""
-        try:
-            pub_by_rut = self._index_by_rut(DataCache.publicaciones_list)
-            proy_by_rut = self._index_by_rut(DataCache.proyectos_list)
-            self.investigadores_summary = self._build_summary(
-                self.investigadores_data,
-                pub_by_rut,
-                proy_by_rut,
-                total_pub=len(DataCache.publicaciones_list),
-                total_proy=len(DataCache.proyectos_list),
-            )
-        except Exception as e:
-            logger.error(f"Error creando resumen desde caché: {e}")
-            self.investigadores_summary = "Error cargando resumen de investigadores"
-
-    def _create_investigators_summary_extended(
-        self, df, publicaciones_data: list, proyectos_data: list
-    ):
-        """Crea resumen de investigadores desde archivos (fallback)."""
-        try:
-            pub_by_rut = self._index_by_rut(publicaciones_data)
-            proy_by_rut = self._index_by_rut(proyectos_data)
-            investigadores_list = df.head(MAX_INVESTIGATORS_PREVIEW).to_dict("records")
-            self.investigadores_summary = self._build_summary(
-                investigadores_list,
-                pub_by_rut,
-                proy_by_rut,
-                total_pub=len(publicaciones_data),
-                total_proy=len(proyectos_data),
-            )
-        except Exception as e:
-            logger.error(f"Error creando resumen extendido de investigadores: {e}")
-            self.investigadores_summary = "Error cargando resumen extendido de investigadores"
-
     def _create_agent(self):
-        """Crea el agente Agno."""
+        """Crea el agente Agno con tools. Respuesta JSON validada con Pydantic."""
         try:
             self.agent = Agent(
                 model=Claude(id=AI_MODEL_ID),
-                instructions=f"""Eres un asistente inteligente especializado en búsqueda de investigadoras del Observatorio de Género en Ciencia de la Universidad de La Frontera (UFRO).
-
-INFORMACIÓN DE INVESTIGADORES CON PUBLICACIONES Y PROYECTOS:
-{self.investigadores_summary}
-
-ÁREAS OCDE COMPLETAS DISPONIBLES: {", ".join(self.all_areas)}
-
-TU TAREA:
-1. Analizar consultas de búsqueda en lenguaje natural sobre investigadoras y sus trabajos
-2. DETECTAR AUTOMÁTICAMENTE si la consulta busca:
-   - NOMBRES DE PERSONAS (ej: "Alba Zambrano", "María García", "Dr. López")
-   - ÁREAS DE INVESTIGACIÓN (ej: "matemáticas", "biotecnología", "psicología")
-   - TÍTULOS DE TRABAJOS (ej: "validación escala soledad", "células madre")
-   - FILTROS NUMÉRICOS (ej: "más de 20 publicaciones", "al menos 10 proyectos")
-   - FILTROS DE ROL (ej: "investigador responsable", "co-investigador", "IR", "co-i")
-   - CONSULTAS HÍBRIDAS (combinaciones de lo anterior)
-3. Responder SOLO en formato JSON como se especifica abajo
-
-FORMATO DE RESPUESTA REQUERIDO (siempre JSON válido):
-{{
-    "tipo_busqueda": "nombre|area|titulo|filtro_numerico|rol|hibrida",
-    "areas_detectadas": ["área1", "área2"],
-    "nombres_detectados": ["nombre1", "nombre2"],
-    "titulos_detectados": ["fragmento_titulo1", "fragmento_titulo2"],
-    "terminos_busqueda": ["término1", "término2"],
-    "min_proyectos": null,
-    "min_publicaciones": null,
-    "rol_filtro": null,
-    "resumen": "breve explicación de los resultados encontrados"
-}}
-
-REGLAS PARA DETECCIÓN:
-- tipo_busqueda "nombre": Si detectas nombres propios
-- tipo_busqueda "area": Si detectas disciplinas/campos
-- tipo_busqueda "titulo": Si detectas títulos o fragmentos de publicaciones/proyectos
-- tipo_busqueda "filtro_numerico": Si detectas cantidades como "más de X", "al menos X", "mínimo X"
-- tipo_busqueda "rol": Si detectas roles como "investigador responsable", "IR", "co-investigador", "co-i"
-- tipo_busqueda "hibrida": Si detectas COMBINACIÓN de varios tipos
-
-DETECCIÓN DE FILTROS NUMÉRICOS:
-- "más de 20 publicaciones" → min_publicaciones: 20
-- "al menos 10 proyectos" → min_proyectos: 10
-- "con 15 o más papers" → min_publicaciones: 15
-- "mínimo 5 proyectos" → min_proyectos: 5
-
-DETECCIÓN DE ROLES:
-- "investigador responsable", "IR", "responsable" → rol_filtro: "ir"
-- "co-investigador", "co-i", "coinvestigador" → rol_filtro: "co-i"
-
-EJEMPLOS:
-- "investigadoras con más de 20 publicaciones" → tipo_busqueda: "filtro_numerico", min_publicaciones: 20
-- "Alba Zambrano" → tipo_busqueda: "nombre", nombres_detectados: ["Alba Zambrano"]
-- "biotecnología con más de 5 proyectos" → tipo_busqueda: "hibrida", areas_detectadas: ["BIOTECNOLOGIA..."], min_proyectos: 5
-- "investigadoras responsables" → tipo_busqueda: "rol", rol_filtro: "ir"
-- "co-investigadoras en matemáticas" → tipo_busqueda: "hibrida", rol_filtro: "co-i", areas_detectadas: ["MATEMATICAS"]""",
-                description="Agente de búsqueda inteligente para investigadoras OCDE",
+                description="Agente de búsqueda inteligente para el repositorio de investigadoras OCDE-UFRO.",
+                instructions=[
+                    "Eres un asistente especializado en búsqueda de investigadoras del Observatorio de Género en Ciencia de la Universidad de La Frontera (UFRO).",
+                    "Analiza la consulta y usa las herramientas disponibles para buscar en los datos reales antes de responder.",
+                    "FLUJO DE BÚSQUEDA RECOMENDADO:",
+                    "1. Para consultas de nombre → usa buscar_investigadoras_por_nombre().",
+                    "2. Para consultas de área → usa listar_areas_ocde() para obtener nombres exactos, luego buscar_investigadoras_por_area().",
+                    "3. Para líneas de investigación o temas que NO son áreas OCDE exactas (ej: 'biología celular', 'salud mental', 'género y ciencia') → usa buscar_por_termino_libre() y copia los términos en terminos_busqueda.",
+                    "4. Para consultas de título específico → usa buscar_publicacion_por_titulo() o buscar_proyecto_por_titulo().",
+                    "REGLA IMPORTANTE: Si la consulta describe una temática o línea de investigación, SIEMPRE usa buscar_por_termino_libre() y coloca los términos clave en terminos_busqueda.",
+                    "Detecta tipo de búsqueda: nombre | area | titulo | filtro_numerico | rol | hibrida.",
+                    "Filtros numéricos: 'más de 20 publicaciones' → min_publicaciones=20, 'al menos 5 proyectos' → min_proyectos=5.",
+                    "Roles: 'investigadora responsable'/'IR' → rol_filtro='ir'; 'co-investigadora'/'co-i' → rol_filtro='co-i'.",
+                    "El campo 'resumen' debe ser una frase breve y natural. NUNCA incluyas IDs, RUTs ni números de identificación en el resumen. Solo menciona nombres, áreas y cantidades.",
+                    """Tu respuesta FINAL debe ser ÚNICAMENTE un objeto JSON válido con esta estructura exacta (sin texto adicional, sin markdown):
+{"tipo_busqueda":"area","areas_detectadas":[],"nombres_detectados":[],"titulos_detectados":[],"terminos_busqueda":[],"min_proyectos":null,"min_publicaciones":null,"rol_filtro":null,"resumen":""}""",
+                ],
+                tools=[
+                    listar_areas_ocde,
+                    buscar_investigadoras_por_nombre,
+                    buscar_investigadoras_por_area,
+                    buscar_por_termino_libre,
+                    buscar_publicacion_por_titulo,
+                    buscar_proyecto_por_titulo,
+                    obtener_estadisticas,
+                ],
+                tool_call_limit=8,
+                retries=2,
+                telemetry=False,
                 markdown=False,
             )
-
             logger.info("Agno Agent creado exitosamente")
 
         except Exception as e:
@@ -354,6 +457,8 @@ EJEMPLOS:
         Returns:
             Dict con resultados estructurados
         """
+        import json
+
         try:
             if not self.agent:
                 return self._fallback_search(query)
@@ -362,57 +467,28 @@ EJEMPLOS:
                 return {"error": "Consulta vacía"}
 
             response = self.agent.run(query)
+            response_text = str(response.content) if hasattr(response, "content") else str(response)
 
-            if hasattr(response, "content"):
-                response_text = str(response.content)
-            else:
-                response_text = str(response)
+            # Extraer JSON del texto de respuesta
+            start = response_text.find("{")
+            end = response_text.rfind("}") + 1
+            if start == -1 or end == 0:
+                logger.warning("No se encontró JSON en la respuesta del agente")
+                return self._fallback_search(query)
 
-            return self._parse_agent_response(response_text)
+            data = json.loads(response_text[start:end])
+
+            # Validar con Pydantic y filtrar áreas
+            result = SearchResult.model_validate(data)
+            result.areas_detectadas = [
+                area for area in result.areas_detectadas
+                if area in self.all_areas
+            ]
+            return result.model_dump()
 
         except Exception as e:
             logger.error(f"Error en búsqueda inteligente: {e}")
             return self._fallback_search(query)
-
-    def _parse_agent_response(self, response_text: str) -> Dict[str, Any]:
-        """Parsea la respuesta JSON del agente."""
-        try:
-            import json
-
-            start = response_text.find("{")
-            end = response_text.rfind("}") + 1
-
-            if start != -1 and end != 0:
-                json_str = response_text[start:end]
-                data = json.loads(json_str)
-
-                # Validar áreas
-                if "areas_detectadas" in data:
-                    data["areas_detectadas"] = [
-                        area for area in data["areas_detectadas"]
-                        if area in self.all_areas
-                    ]
-                
-                # Asegurar que existan todos los campos necesarios
-                result = {
-                    "tipo_busqueda": data.get("tipo_busqueda", "area"),
-                    "areas_detectadas": data.get("areas_detectadas", []),
-                    "nombres_detectados": data.get("nombres_detectados", []),
-                    "titulos_detectados": data.get("titulos_detectados", []),
-                    "terminos_busqueda": data.get("terminos_busqueda", []),
-                    "min_proyectos": data.get("min_proyectos"),
-                    "min_publicaciones": data.get("min_publicaciones"),
-                    "rol_filtro": data.get("rol_filtro"),
-                    "resumen": data.get("resumen", ""),
-                }
-                
-                return result
-
-            return self._fallback_search_response(response_text)
-
-        except Exception as e:
-            logger.error(f"Error parseando respuesta del agente: {e}")
-            return self._fallback_search_response(response_text)
 
     def _fallback_search(self, query: str) -> Dict[str, Any]:
         """Búsqueda de respaldo cuando el agente no está disponible."""
@@ -420,36 +496,29 @@ EJEMPLOS:
             import re
             query_lower = query.lower()
 
-            # Detectar áreas
-            detected_areas = []
-            for area in self.all_areas:
-                if any(word in area.lower() for word in query_lower.split()):
-                    detected_areas.append(area)
+            detected_areas = [
+                area for area in self.all_areas
+                if any(word in area.lower() for word in query_lower.split())
+            ]
+            search_terms = [w for w in query_lower.split() if len(w) > 2]
 
-            search_terms = [word for word in query_lower.split() if len(word) > 2]
-            
-            # Detectar filtros numéricos
             min_proyectos = None
             min_publicaciones = None
             rol_filtro = None
-            
-            # Proyectos
+
             proy_match = re.search(r"(?:más|mas)\s+de\s+(\d+)\s*proyectos?", query_lower)
             if proy_match:
                 min_proyectos = int(proy_match.group(1))
-            
-            # Publicaciones
+
             pub_match = re.search(r"(?:más|mas)\s+de\s+(\d+)\s*(?:publicaciones?|papers?)", query_lower)
             if pub_match:
                 min_publicaciones = int(pub_match.group(1))
-            
-            # Rol
+
             if re.search(r"(?:co-?i\b|co-?\s*investigador)", query_lower):
                 rol_filtro = "co-i"
             elif re.search(r"(?:\bir\b|responsables?)", query_lower):
                 rol_filtro = "ir"
-            
-            # Determinar tipo de búsqueda
+
             tipo = "area"
             if min_proyectos or min_publicaciones:
                 tipo = "filtro_numerico"
@@ -482,20 +551,6 @@ EJEMPLOS:
                 "resumen": f"Error en la búsqueda: {str(e)}",
             }
 
-    def _fallback_search_response(self, response_text: str) -> Dict[str, Any]:
-        """Crear respuesta estructurada cuando el parsing JSON falla."""
-        return {
-            "tipo_busqueda": "area",
-            "areas_detectadas": [],
-            "nombres_detectados": [],
-            "titulos_detectados": [],
-            "terminos_busqueda": [],
-            "min_proyectos": None,
-            "min_publicaciones": None,
-            "rol_filtro": None,
-            "resumen": "La búsqueda devolvió resultados pero no en el formato esperado. Intenta reformular tu consulta.",
-        }
-
     def is_ready(self) -> bool:
         """Verifica si el agente está listo."""
         return self.agent is not None and len(self.investigadores_data) > 0
@@ -506,14 +561,17 @@ EJEMPLOS:
             "ready": self.is_ready(),
             "investigadores_loaded": len(self.investigadores_data),
             "areas_available": len(self.all_areas),
-            "model": "Claude Sonnet 4.5 (via Agno)",
-            "framework": "Agno (simplified)",
+            "model": AI_MODEL_ID,
+            "framework": "Agno + output_schema + @tool",
             "uses_shared_cache": USE_SHARED_CACHE,
             "data_directory": self.data_directory,
         }
 
 
-# Instancia singleton
+# =========================================================
+# INSTANCIA SINGLETON + FUNCIONES DE UTILIDAD
+# =========================================================
+
 search_agent = AgnoSearchAgent()
 
 
@@ -538,8 +596,7 @@ def get_available_areas() -> List[str]:
 
 
 if __name__ == "__main__":
-    print("=== AI Search Agent con Agno Framework (Optimizado) ===")
-    print("Información del agente:")
+    print("=== AI Search Agent con Agno Framework (output_schema + @tool) ===")
     info = get_ai_search_info()
     for key, value in info.items():
         print(f"  {key}: {value}")
@@ -550,14 +607,15 @@ if __name__ == "__main__":
         test_queries = [
             "busca investigadoras de matemáticas",
             "encuentra expertas en biotecnología",
-            "María García publicaciones sobre células",
+            "investigadoras con más de 20 publicaciones",
+            "investigadoras responsables en psicología",
         ]
 
         for query in test_queries:
             print(f"\nConsulta: {query}")
             result = get_ai_search_response(query)
+            print(f"Tipo: {result.get('tipo_busqueda')}")
             print(f"Áreas detectadas: {result.get('areas_detectadas', [])}")
-            print(f"Términos de búsqueda: {result.get('terminos_busqueda', [])}")
-            print(f"Resumen: {result.get('resumen', 'Sin resumen')[:100]}...")
+            print(f"Resumen: {result.get('resumen', '')[:100]}")
     else:
-        print("\nAgente de búsqueda no está listo. Verifica la configuración.")
+        print("\nAgente no está listo. Verifica ANTHROPIC_API_KEY.")

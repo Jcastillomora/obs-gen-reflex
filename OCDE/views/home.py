@@ -309,7 +309,7 @@ def contenido_home():
                 rx.text("El Observatorio de Género y Ciencia de la Universidad de La Frontera tiene como objetivo principal aportar al desarrollo de capacidades institucionales a través del monitoreo de las acciones de transversalización del enfoque de género desde una perspectiva procedimental y normativa en el ámbito de I+D+i+e de base científica tecnológica en la institución.", class_name="text-indigo-900 text-left antialiased text-base sm:text-xs md:text-lg lg:text-xl leading-relaxed"),
                 class_name="w-full bg-slate-300 rounded-lg shadow-lg p-6",
             ),
-            class_name="w-full text-center p-4 sm:p-4 md:p-30 lg:p-30 xl:p-30",
+            class_name="w-full text-center p-4 sm:p-4 md:p-20 lg:p-20 xl:p-20",
         ),
         rx.flex(
             home_card("chart-pie", title="Monitoreamos", description="la participación de las investigadoras en proyectos y publicaciones", color="orange"),

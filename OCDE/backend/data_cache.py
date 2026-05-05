@@ -30,6 +30,7 @@ class DataCache:
     """
     _instance: Optional['DataCache'] = None
     _initialized: bool = False
+    _data_directory: str = "./"
     
     # DataFrames cargados
     df_academicas: Optional[pd.DataFrame] = None
@@ -111,8 +112,9 @@ class DataCache:
             cls.publicaciones_list = cls.df_publicaciones.to_dict("records")
             cls.proyectos_list = cls.df_proyectos.to_dict("records")
             
+            cls._data_directory = data_directory
             cls._initialized = True
-            
+
             logger.info(
                 f"✅ DataCache: Cargados {len(cls.investigadores_list)} investigadores, "
                 f"{len(cls.publicaciones_list)} publicaciones, "
@@ -151,6 +153,7 @@ class DataCache:
         df = df.dropna(subset=["id"])
         df["id"] = df["id"].astype(int)
         df["orcid"] = df["orcid"].fillna("")
+        df["rut_ir"] = df["rut_ir"].astype(str).str.strip().str.upper().str.replace(".", "", regex=False).str.lstrip("0")
         df["grado_mayor"] = df["grado_mayor"].astype(str)
         df["grado_mayor"] = df["grado_mayor"].replace("nan", "INVESTIGADORA")
         df["grado_mayor"] = df["grado_mayor"].replace("", "INVESTIGADORA")
@@ -159,8 +162,28 @@ class DataCache:
             .astype(str)
             .apply(lambda x: " ,".join(x.split("#")) if x and x != "nan" else "")
         )
+
+        # Dividir 'name' en nombre, apellido1, apellido2
+        def _split_name(nombre_completo: str) -> tuple:
+            partes = str(nombre_completo).strip().split()
+            if len(partes) >= 4:
+                return " ".join(partes[:-2]), partes[-2], partes[-1]
+            elif len(partes) == 3:
+                return partes[0], partes[1], partes[2]
+            elif len(partes) == 2:
+                return partes[0], partes[1], ""
+            else:
+                return nombre_completo, "", ""
+
+        df[["nombre", "apellido1", "apellido2"]] = df["name"].apply(
+            lambda x: pd.Series(_split_name(x))
+        )
+        df["nombre"]    = df["nombre"].fillna("").astype(str)
+        df["apellido1"] = df["apellido1"].fillna("").astype(str)
+        df["apellido2"] = df["apellido2"].fillna("").astype(str)
+
         cls.df_academicas = df
-        
+
         # Extraer áreas únicas
         cls.all_areas = sorted(
             df["ocde_2"].dropna().str.split(",").explode().str.strip().unique().tolist()
@@ -172,6 +195,7 @@ class DataCache:
         df = cls.df_proyectos
         df = df.replace("", np.nan)
         df.columns = df.columns.str.strip()
+        df["rut_ir"] = df["rut_ir"].astype(str).str.strip().str.upper().str.replace(".", "", regex=False).str.lstrip("0")
         df["año"] = pd.to_numeric(df["año"], errors="coerce").fillna(0).astype(int)
         df["ocde_2"] = df["ocde_2"].fillna("SIN INFO")
         df["rol"] = df["rol"].fillna("Sin Info")
@@ -182,6 +206,7 @@ class DataCache:
         """Limpia y normaliza datos de publicaciones."""
         df = cls.df_publicaciones
         df = df.replace("", np.nan)
+        df["rut_ir"] = df["rut_ir"].astype(str).str.strip().str.upper().str.replace(".", "", regex=False).str.lstrip("0")
         # Campos de texto: rellenar NaN con cadena vacía
         # Año: solo enteros en rango [1981, año actual], el resto "Sin info"
         import datetime
@@ -225,7 +250,33 @@ class DataCache:
     def is_initialized(cls) -> bool:
         """Verifica si el caché está inicializado."""
         return cls._initialized
-    
+
+    @classmethod
+    def reload_publicaciones(cls) -> int:
+        """
+        Recarga publicaciones_total.xlsx sin reiniciar el servidor.
+        Devuelve el número de registros cargados.
+        """
+        pub_path = os.path.join(cls._data_directory, PUBLICACIONES_FILE)
+        if not os.path.exists(pub_path):
+            pub_path = PUBLICACIONES_FILE
+
+        cls.df_publicaciones = pd.read_excel(pub_path)
+        cls._validate_columns(cls.df_publicaciones, {"rut_ir"}, "publicaciones")
+        cls._clean_publicaciones()
+
+        # Reconstruir solo índices de publicaciones
+        publicaciones_grouped = cls.df_publicaciones.groupby("rut_ir").size()
+        cls.publicaciones_count = {str(k): v for k, v in publicaciones_grouped.to_dict().items()}
+        cls.publicaciones_by_rut = {}
+        for rut, group in cls.df_publicaciones.groupby("rut_ir"):
+            cls.publicaciones_by_rut[str(rut)] = group.copy()
+        cls.publicaciones_list = cls.df_publicaciones.to_dict("records")
+
+        total = len(cls.publicaciones_list)
+        logger.info(f"✅ Publicaciones recargadas: {total} registros")
+        return total
+
     @classmethod
     def get_proyectos_count(cls, rut_ir) -> int:
         """O(1) lookup de conteo de proyectos."""

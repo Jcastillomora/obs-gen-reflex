@@ -10,6 +10,7 @@ import reflex as rx
 import asyncio
 import logging
 import re
+import unicodedata
 from .data_items import all_items
 from .data_cache import DataCache  # Caché compartido
 from .models import Investigador, Publicaciones, Proyectos, Documento
@@ -42,6 +43,18 @@ _PUB_PATTERNS = [
 
 _ROL_CO_PATTERN = r"(?:co-?i\b|co-?\s*investigador[aes]?|coinvestigador[aes]?)"
 _ROL_IR_PATTERN = r"(?:\bir\b|investigador[aes]?\s+responsables?|responsables?|principales?)"
+
+# Palabras genéricas que NO aportan al significado temático de la búsqueda
+_BROAD_SEARCH_STOPWORDS = {
+    "investigadoras", "investigadora", "investigadores", "investigador",
+    "expertas", "experta", "expertos", "experto",
+    "mujeres", "mujer", "chile", "ufro", "universidad",
+    "busca", "busco", "necesito", "quiero", "dame", "dime",
+    "encuentra", "encontrar", "mostrar", "muestra", "listar",
+    "docentes", "profesoras", "profesora", "academicas", "academica",
+    "cientificas", "cientifica", "cientificos", "cientifico",
+    "todas", "todos", "lista", "dame", "tengan", "tienen",
+}
 
 
 class State(rx.State):
@@ -123,6 +136,7 @@ class State(rx.State):
     ai_search_error: str = ""
     ai_search_results_summary: str = ""
     ai_detected_areas: list[str] = []
+    ai_search_ruts: list[str] = []
 
     # Repositorio (cargado de DB)
     reportes_items: list[dict] = []
@@ -179,26 +193,38 @@ class State(rx.State):
     
     @rx.var
     def filtered_investigators(self) -> list[Investigador]:
-        """Filtrado optimizado usando índices pre-calculados."""
-        term = self.search_term.lower().strip()
+        """Filtrado optimizado usando índices pre-calculados.
 
-        if term:
-            filtered = [
-                inv for inv in self.investigadores
-                if (term in str(inv.id))
-                or (term in inv.name.lower())
-                or (term in inv.ocde_2.lower())
-            ]
+        Dos caminos mutuamente excluyentes:
+        - ai_search_ruts activo → búsqueda semántica amplia (grado, pub, proyectos)
+        - Sin ai_search_ruts   → filtrado clásico por texto/áreas OCDE
+        En ambos casos se aplican los filtros numéricos y de rol al final.
+        """
+        # --- CAMINO 1: Búsqueda semántica amplia (RUTs del backend search) ---
+        if self.ai_search_ruts:
+            ruts_set = set(self.ai_search_ruts)
+            filtered = [inv for inv in self.investigadores if inv.rut_ir in ruts_set]
+
+        # --- CAMINO 2: Filtrado clásico por texto y áreas OCDE ---
         else:
-            filtered = self.investigadores
+            term = self.search_term.lower().strip()
+            if term:
+                filtered = [
+                    inv for inv in self.investigadores
+                    if (term in str(inv.id))
+                    or (term in (inv.nombre + " " + inv.apellido1 + " " + inv.apellido2).lower())
+                    or (term in inv.ocde_2.lower())
+                ]
+            else:
+                filtered = self.investigadores
 
-        if self.selected_areas:
-            filtered = [
-                inv for inv in filtered
-                if any(area in inv.ocde_2 for area in self.selected_areas)
-            ]
+            if self.selected_areas:
+                filtered = [
+                    inv for inv in filtered
+                    if any(area in inv.ocde_2 for area in self.selected_areas)
+                ]
 
-        # Filtro por proyectos - O(1) usando DataCache
+        # --- FILTROS NUMÉRICOS Y DE ROL (aplican a ambos caminos) ---
         if self.min_proyectos.strip() and self.min_proyectos.strip().isdigit():
             min_proy = int(self.min_proyectos.strip())
             filtered = [
@@ -206,7 +232,6 @@ class State(rx.State):
                 if DataCache.get_proyectos_count(inv.rut_ir) >= min_proy
             ]
 
-        # Filtro por publicaciones - O(1) usando DataCache
         if self.min_publicaciones.strip() and self.min_publicaciones.strip().isdigit():
             min_pub = int(self.min_publicaciones.strip())
             filtered = [
@@ -214,7 +239,6 @@ class State(rx.State):
                 if DataCache.get_publicaciones_count(inv.rut_ir) >= min_pub
             ]
 
-        # Filtro por rol - O(1) usando DataCache
         if self.search_rol.strip():
             filtered = [
                 inv for inv in filtered
@@ -247,15 +271,21 @@ class State(rx.State):
             self.selected_areas.append(self.selected_area_temp)
 
     @rx.var
+    def current_investigator_fullname(self) -> str:
+        if self.current_investigator_is_none:
+            return ""
+        inv = self.current_investigator
+        return (inv.nombre + " " + inv.apellido1 + " " + inv.apellido2).strip()
+
+    @rx.var
     def get_initials(self) -> str:
-        if self.current_investigator_is_none or not self.current_investigator.name:
+        if self.current_investigator_is_none or not self.current_investigator.nombre:
             return "??"
-        name_parts = self.current_investigator.name.split()
-        if len(name_parts) >= 2:
-            return f"{name_parts[0][0]}{name_parts[1][0]}".upper()
-        elif len(name_parts) == 1:
-            return name_parts[0][0].upper()
-        return "??"
+        nombre   = self.current_investigator.nombre
+        apellido = self.current_investigator.apellido1
+        if apellido:
+            return (nombre[0] + apellido[0]).upper()
+        return nombre[0].upper()
 
     # =========================================================
     # MÉTODOS DE CARGA - REQUERIDOS POR OCDE.py
@@ -590,9 +620,8 @@ class State(rx.State):
     @rx.event(background=True)
     async def process_ai_response(self, user_input: str):
         try:
-            await asyncio.sleep(0.1)
             from .chatbot.pdf_agent import get_pdf_chatbot_response
-            response = get_pdf_chatbot_response(user_input)
+            response = await asyncio.to_thread(get_pdf_chatbot_response, user_input)
 
             async with self:
                 assistant_message = {"role": "assistant", "content": response}
@@ -632,6 +661,7 @@ class State(rx.State):
                 self.search_term = ""
                 self.selected_areas = []
                 self.ai_detected_areas = []
+                self.ai_search_ruts = []
                 self.min_proyectos = ""
                 self.min_publicaciones = ""
                 self.search_rol = ""
@@ -643,6 +673,9 @@ class State(rx.State):
             self.ai_search_loading = True
             self.ai_search_error = ""
             self.ai_search_results_summary = ""
+            # Limpiar búsqueda normal para evitar interferencias
+            self.search_term = ""
+            self.selected_areas = []
 
         try:
             from .chatbot.ai_search_agent import get_ai_search_response, is_ai_search_ready
@@ -717,13 +750,21 @@ class State(rx.State):
             if any(word in area.lower() for word in query.split()):
                 detected_areas.append(area)
 
-        if not (proyecto_match or pub_match or rol_co_match or rol_ir_match):
+        has_numeric_filter = proyecto_match or pub_match or rol_co_match or rol_ir_match
+        if not has_numeric_filter:
             self.ai_detected_areas = detected_areas[:3]
             self.selected_areas = detected_areas[:3]
-            self.search_term = self.ai_search_query
+            # Si no hay áreas exactas, activar búsqueda semántica amplia
+            if not detected_areas:
+                self.ai_search_ruts = self._find_ruts_by_broad_search(self.ai_search_query)
+                self.search_term = ""
+            else:
+                self.ai_search_ruts = []
+                self.search_term = self.ai_search_query
         else:
             self.ai_detected_areas = []
             self.selected_areas = []
+            self.ai_search_ruts = []
             self.search_term = ""
 
         if applied_filters:
@@ -785,7 +826,7 @@ class State(rx.State):
             detected_names = data.get("nombres_detectados", [])
             search_terms = data.get("terminos_busqueda", [])
             summary = data.get("resumen", "")
-            
+
             # Usar filtros del agente si no se detectaron por regex
             agent_min_proy = data.get("min_proyectos")
             agent_min_pub = data.get("min_publicaciones")
@@ -850,12 +891,31 @@ class State(rx.State):
                 self.selected_areas = []
 
             self.ai_detected_areas = valid_areas
-            
-            # Construir resumen
+
+            # Búsqueda semántica amplia: activar cuando no hay áreas OCDE exactas
+            # y la búsqueda NO es estrictamente de filtro numérico o rol puro
+            if not valid_areas and tipo_busqueda not in ("filtro_numerico", "rol"):
+                # Preferir los términos limpios del LLM; si vienen vacíos usar la query completa
+                broad_input = " ".join(search_terms) if search_terms else self.ai_search_query
+                self.ai_search_ruts = self._find_ruts_by_broad_search(broad_input)
+                if self.ai_search_ruts:
+                    # No llenar el buscador normal cuando la búsqueda amplia está activa
+                    self.search_term = ""
+            else:
+                self.ai_search_ruts = []
+
+            # Construir resumen basado en resultados reales (no en el texto del LLM)
             if applied_filters:
                 self.ai_search_results_summary = f"Filtros aplicados: {', '.join(applied_filters)}"
-            elif summary:
-                self.ai_search_results_summary = summary
+            elif self.ai_search_ruts:
+                count = len(self.ai_search_ruts)
+                term_display = " ".join(search_terms) if search_terms else self.ai_search_query
+                plural = "s" if count != 1 else ""
+                self.ai_search_results_summary = (
+                    f"{count} investigadora{plural} encontrada{plural} relacionada{plural} con '{term_display}'"
+                )
+            elif valid_areas:
+                self.ai_search_results_summary = f"Búsqueda por área: {', '.join(valid_areas)}"
             else:
                 self.ai_search_results_summary = f"Búsqueda por '{self.ai_search_query}'"
 
@@ -864,9 +924,89 @@ class State(rx.State):
             self.ai_search_error = f"Error procesando respuesta: {str(e)}"
             self._perform_simple_ai_search()
 
+    @staticmethod
+    def _normalize(text: str) -> str:
+        """Elimina acentos y pasa a minúsculas para comparación insensible a acentos."""
+        return unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode("ascii").lower()
+
+    def _find_ruts_by_broad_search(self, query: str) -> list:
+        """
+        Búsqueda amplia en DataCache: ocde_2, grado_mayor, títulos de publicaciones y proyectos.
+        Filtra stopwords genéricos y normaliza acentos.
+        Retorna RUTs ordenados por relevancia (más coincidencias primero).
+        """
+        norm_query = self._normalize(query)
+        # Solo palabras temáticamente significativas (>3 chars, no stopwords)
+        words = [
+            w for w in norm_query.split()
+            if len(w) > 3 and w not in _BROAD_SEARCH_STOPWORDS
+        ]
+        if not words:
+            return []
+
+        rut_scores: dict = {}
+
+        # Búsqueda en ocde_2 y grado_mayor (campos de perfil académico)
+        for inv in DataCache.investigadores_list:
+            rut = inv.get("rut_ir", "")
+            ocde = self._normalize(str(inv.get("ocde_2", "")))
+            grado = self._normalize(str(inv.get("grado_mayor", "")))
+            for word in words:
+                if word in ocde:
+                    rut_scores[rut] = rut_scores.get(rut, 0) + 3
+                if word in grado:
+                    rut_scores[rut] = rut_scores.get(rut, 0) + 3
+
+        # Búsqueda en títulos de publicaciones (peso 1)
+        for pub in DataCache.publicaciones_list:
+            rut = pub.get("rut_ir", "")
+            titulo = self._normalize(str(pub.get("titulo", "")))
+            for word in words:
+                if word in titulo:
+                    rut_scores[rut] = rut_scores.get(rut, 0) + 1
+
+        # Búsqueda en títulos de proyectos (peso 1)
+        for proy in DataCache.proyectos_list:
+            rut = proy.get("rut_ir", "")
+            titulo = self._normalize(str(proy.get("titulo", "")))
+            for word in words:
+                if word in titulo:
+                    rut_scores[rut] = rut_scores.get(rut, 0) + 1
+
+        if not rut_scores:
+            return []
+
+        sorted_ruts = sorted(rut_scores.items(), key=lambda x: x[1], reverse=True)
+
+        # Si hay investigadoras con coincidencia en perfil académico (score >= 3),
+        # excluir las que solo aparecen tangencialmente en publicaciones/proyectos (score < 3).
+        # Esto evita que aparezca alguien que tiene 1 paper con el tema pero no es experta.
+        profile_matches = [rut for rut, score in sorted_ruts if score >= 3]
+        if profile_matches:
+            return profile_matches
+        # Fallback: si nadie tiene coincidencia en perfil, retornar todos (tema muy específico)
+        return [rut for rut, _ in sorted_ruts]
+
+    @rx.event
+    def clear_ai_search(self):
+        """Limpia toda la búsqueda con IA y restaura el estado inicial."""
+        self.ai_search_input = ""
+        self.ai_search_query = ""
+        self.ai_search_loading = False
+        self.ai_search_error = ""
+        self.ai_search_results_summary = ""
+        self.ai_detected_areas = []
+        self.ai_search_ruts = []
+        self.search_term = ""
+        self.selected_areas = []
+        self.min_proyectos = ""
+        self.min_publicaciones = ""
+        self.search_rol = ""
+
     @rx.event
     def clear_ai_detected_areas(self):
         self.ai_detected_areas = []
+        self.ai_search_ruts = []
 
     # =========================================================
     # REPOSITORIO (DB)

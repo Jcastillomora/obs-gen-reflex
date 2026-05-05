@@ -18,7 +18,7 @@ def navbar_searchbar() -> rx.Component:
                         rx.heading(
                             "Investigadoras", size="7", weight="bold", class_name="text-indigo-900"
                         ),
-                        rx.text("Proyectos y Publicaciones 2018 - 2024", size="5", class_name="text-indigo-900"),
+                        rx.text("Proyectos y Publicaciones", size="5", class_name="text-indigo-900"),
                         spacing="0",
                     ),
                     align_items="center",
@@ -38,7 +38,7 @@ def navbar_searchbar() -> rx.Component:
                         rx.heading(
                             "Investigadoras", size="4", weight="bold", class_name="text-indigo-900"
                         ),
-                        rx.text("Proyectos y Publicaciones 2018-2024", size="1", class_name="text-indigo-900"),
+                        rx.text("Proyectos y Publicaciones", size="1", class_name="text-indigo-900"),
                         spacing="0",
                     ),
                     align_items="center",
@@ -73,7 +73,7 @@ def navbar_searchbar_notsearch() -> rx.Component:
                         rx.heading(
                             "Investigadoras", size="7", weight="bold", class_name="text-indigo-900"
                         ),
-                        rx.text("Proyectos y Publicaciones 2018 - 2024", size="5", class_name="text-indigo-900"),
+                        rx.text("Proyectos y Publicaciones", size="5", class_name="text-indigo-900"),
                         spacing="0",
                     ),
                     # rx.badge(
@@ -108,7 +108,7 @@ def navbar_searchbar_notsearch() -> rx.Component:
                         rx.heading(
                             "Investigadoras", size="4", weight="bold", class_name="text-indigo-900"
                         ),
-                        rx.text("Proyectos y Publicaciones 2018-2024", size="1", class_name="text-indigo-900"),
+                        rx.text("Proyectos y Publicaciones", size="1", class_name="text-indigo-900"),
                         spacing="0",
                     ),
                     align_items="center",
