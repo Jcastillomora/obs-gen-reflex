@@ -5,5 +5,5 @@ config = rx.Config(
     plugins=[
         rx.plugins.TailwindV4Plugin(),
     ],
-    db_url="sqlite:///ocde.db",
+    db_url="sqlite:///data/ocde.db",
 )

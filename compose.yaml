@@ -10,6 +10,7 @@ services:
     volumes:
       - db-data:/app/data
       - upload-data:/app/uploaded_files
+      - static-data:/app/.web/build/client
       - /home/admobge/obs-gen-reflex/OCDE/backend/:/app/OCDE/backend/
     restart: always
 
@@ -23,7 +24,9 @@ services:
       context: .
       dockerfile: Caddy.Dockerfile
     volumes:
-      - caddy-data:/root/.caddy
+      - caddy-data:/data
+      - caddy-config:/config
+      - static-data:/srv:ro
     restart: always
     depends_on:
       - app
@@ -32,3 +35,5 @@ volumes:
   db-data:
   upload-data:
   caddy-data:
+  caddy-config:
+  static-data:

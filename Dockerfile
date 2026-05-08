@@ -13,7 +13,7 @@ RUN /install.sh && rm /install.sh
 # Copy local context to `/app` inside container (see .dockerignore)
 WORKDIR /app
 COPY . .
-RUN mkdir -p /app/data /app/uploaded_files
+RUN mkdir -p /app/data /app/uploaded_files /app/.states
 
 # Create virtualenv which will be copied into final container
 ENV VIRTUAL_ENV=/app/.venv
@@ -40,6 +40,7 @@ WORKDIR /app
 RUN adduser --disabled-password --home /app reflex
 COPY --chown=reflex --from=init /app /app
 # Install libpq-dev for psycopg (skip if not using postgres).
+RUN chown -R reflex:reflex /app/.states /app/data /app/uploaded_files
 RUN apt-get update -y && apt-get install -y libpq-dev && rm -rf /var/lib/apt/lists/*
 USER reflex
 ENV PATH="/app/.venv/bin:$PATH" PYTHONUNBUFFERED=1
