@@ -5,6 +5,9 @@
 FROM python:3.13 as init
 
 ARG uv=/root/.local/bin/uv
+# Clave publicable de Clerk (no secreta — va embebida en el JS del frontend)
+ARG CLERK_PUBLISHABLE_KEY=""
+ENV CLERK_PUBLISHABLE_KEY=${CLERK_PUBLISHABLE_KEY}
 
 # Install `uv` for faster package bootstrapping
 ADD --chmod=755 https://astral.sh/uv/install.sh /install.sh
