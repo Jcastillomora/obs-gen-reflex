@@ -2,14 +2,13 @@
 services:
   app:
     image: local/reflex-app
-    environment:
-      DB_URL: sqlite:///data/reflex.db
+    env_file: .env
     build:
       context: .
       dockerfile: Dockerfile
     volumes:
       - db-data:/app/data
-      - upload-data:/app/uploaded_files
+      - upload-data:/app/OCDE/assets/uploads
       - static-data:/app/.web/build/client
       - /home/admobge/obs-gen-reflex/OCDE/backend/:/app/OCDE/backend/
     restart: always

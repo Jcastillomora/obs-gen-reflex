@@ -457,7 +457,7 @@ def admin_page() -> rx.Component:
                 rx.vstack(
                     rx.heading("Panel Administrativo", size="6", class_name="text-indigo-800"),
                     rx.text("Inicia sesión para acceder.", class_name="text-gray-500"),
-                    clerk.sign_in(),
+                    clerk.sign_in(force_redirect_url="/admin"),
                     spacing="4",
                     align="center",
                 ),
@@ -470,4 +470,6 @@ def admin_page() -> rx.Component:
         ),
         publishable_key=os.environ.get("CLERK_PUBLISHABLE_KEY", ""),
         secret_key=os.environ.get("CLERK_SECRET_KEY", ""),
+        sign_in_force_redirect_url="/admin",
+        sign_up_force_redirect_url="/admin",
     )
