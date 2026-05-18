@@ -2,14 +2,14 @@
 services:
   app:
     image: local/reflex-app
-    env_file: .env
+    env_file:
+      - .env
     build:
       context: .
       dockerfile: Dockerfile
     volumes:
       - db-data:/app/data
       - upload-data:/app/OCDE/assets/uploads
-      - static-data:/app/.web/build/client
       - /home/admobge/obs-gen-reflex/OCDE/backend/:/app/OCDE/backend/
     restart: always
 
@@ -25,7 +25,6 @@ services:
     volumes:
       - caddy-data:/data
       - caddy-config:/config
-      - static-data:/srv:ro
     restart: always
     depends_on:
       - app
@@ -35,4 +34,3 @@ volumes:
   upload-data:
   caddy-data:
   caddy-config:
-  static-data:
