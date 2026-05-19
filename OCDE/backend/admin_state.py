@@ -21,6 +21,41 @@ ALLOWED_ADMIN_EMAILS = {
 }
 
 
+def _init_clerk_backend() -> None:
+    """
+    Workaround para Python 3.13: reflex_clerk usa @classmethod @property,
+    patrón que quedó roto en Python 3.13 (classmethod ya no invoca el getter
+    de property). Los atributos jwt_public_keys y clerk_api_client retornan
+    el objeto de método en vez de sus valores, por lo que set_clerk_session
+    nunca puede validar tokens JWT.
+
+    Solución: obtener las claves JWT al arranque y reemplazar los descriptores
+    rotos con atributos planos de clase.
+    """
+    import os
+    from reflex_clerk.lib.clerk_provider import ClerkState
+    from reflex_clerk.clerk_client.clerk_client import get_client
+
+    sk = os.environ.get("CLERK_SECRET_KEY", "")
+    if not sk:
+        logger.warning("[Clerk] CLERK_SECRET_KEY no configurada — el admin no funcionará.")
+        return
+    try:
+        client = get_client(sk)
+        keys = client.get_jwks().dict()["keys"]
+        ClerkState._secret_key = sk
+        ClerkState._clerk_api_client = client
+        ClerkState._jwt_public_keys = keys
+        ClerkState.jwt_public_keys = keys
+        ClerkState.clerk_api_client = client
+        logger.info(f"[Clerk] Inicializado correctamente ({len(keys)} clave(s) JWT)")
+    except Exception as e:
+        logger.error(f"[Clerk] Error al inicializar: {e}")
+
+
+_init_clerk_backend()
+
+
 class AdminAuthState(clerk.ClerkState):
     """Estado de autorización: verifica que el email del usuario esté en la lista blanca."""
 
