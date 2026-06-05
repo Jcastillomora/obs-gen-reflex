@@ -11,7 +11,7 @@ services:
         CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY}
     volumes:
       - db-data:/app/data
-      - ./OCDE/assets/uploads:/app/OCDE/assets/uploads
+      - ./assets/uploads:/app/assets/uploads
     restart: always
 
   webserver:
@@ -26,7 +26,7 @@ services:
     volumes:
       - caddy-data:/data
       - caddy-config:/config
-      - ./OCDE/assets/uploads:/srv/uploads
+      - ./assets/uploads:/srv/uploads
     restart: always
     depends_on:
       - app
