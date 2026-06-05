@@ -31,17 +31,13 @@ if [ "$CURRENT_BRANCH" != "$BRANCH" ]; then
     fail "Rama incorrecta: '$CURRENT_BRANCH'. Se esperaba '$BRANCH'"
 fi
 
-# === Git Pull ===
-log "Pulling cambios desde GitHub..."
-git pull origin "$BRANCH" 2>&1 | tee -a "$LOG_FILE" || fail "Error en git pull"
-
 # === Directorios necesarios ===
 mkdir -p assets/uploads
 
 # === Build y Deploy ===
 log "Construyendo imágenes y levantando contenedores..."
 DOMAIN=observatoriogeneroyciencia.ufro.cl \
-    docker compose -f "$COMPOSE_FILE" up -d --build 2>&1 | tee -a "$LOG_FILE"
+    docker compose -f "$COMPOSE_FILE" up -d --build --force-recreate 2>&1 | tee -a "$LOG_FILE"
 
 # === Limpieza ===
 log "Limpiando imágenes antiguas..."
