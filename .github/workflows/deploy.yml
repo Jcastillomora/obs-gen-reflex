@@ -12,5 +12,6 @@ jobs:
       - name: Deploy
         run: |
           cd $HOME/obs-gen-reflex
+          rm -f deploy.sh
           git pull origin main
           bash deploy.sh
