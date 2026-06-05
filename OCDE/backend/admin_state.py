@@ -142,7 +142,8 @@ class AdminState(rx.State):
         self.upload_status = ""
         for file in files:
             # Reflex 0.8.x usa .name (no .filename); el archivo ya está en file.path
-            filename = file.name or (file.path.name if file.path else "uploaded.pdf")
+            raw_name = file.name or (file.path.name if file.path else "uploaded.pdf")
+            filename = raw_name.replace(" ", "_")
             filepath = UPLOADS_DIR / filename
             if file.path and file.path.exists():
                 await asyncio.to_thread(shutil.copy, file.path, filepath)

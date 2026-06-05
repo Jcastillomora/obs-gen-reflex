@@ -11,7 +11,7 @@ services:
         CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY}
     volumes:
       - db-data:/app/data
-      - upload-data:/app/OCDE/assets/uploads
+      - ./OCDE/assets/uploads:/app/OCDE/assets/uploads
       - /home/admobge/obs-gen-reflex/OCDE/backend/:/app/OCDE/backend/
     restart: always
 
@@ -27,12 +27,12 @@ services:
     volumes:
       - caddy-data:/data
       - caddy-config:/config
+      - ./OCDE/assets/uploads:/srv/uploads
     restart: always
     depends_on:
       - app
 
 volumes:
   db-data:
-  upload-data:
   caddy-data:
   caddy-config:

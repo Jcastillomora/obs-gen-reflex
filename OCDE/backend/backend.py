@@ -11,6 +11,7 @@ import asyncio
 import logging
 import re
 import unicodedata
+from urllib.parse import quote
 from .data_items import all_items
 from .data_cache import DataCache  # Caché compartido
 from .models import Investigador, Publicaciones, Proyectos, Documento
@@ -1053,7 +1054,7 @@ class State(rx.State):
                     {
                         "heading_text": doc.titulo,
                         "body_text": doc.descripcion,
-                        "download_url": f"/{doc.filename}",
+                        "download_url": "/" + quote(doc.filename, safe="/"),
                     }
                     for doc in reportes
                 ]
@@ -1064,7 +1065,7 @@ class State(rx.State):
                     {
                         "heading_text": doc.titulo,
                         "body_text": doc.descripcion,
-                        "download_url": f"/{doc.filename}",
+                        "download_url": "/" + quote(doc.filename, safe="/"),
                     }
                     for doc in documentos
                 ]
