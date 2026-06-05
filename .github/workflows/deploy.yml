@@ -10,4 +10,7 @@ jobs:
     runs-on: self-hosted
     steps:
       - name: Deploy
-        run: bash $HOME/obs-gen-reflex/deploy.sh
+        run: |
+          cd $HOME/obs-gen-reflex
+          git pull origin main
+          bash deploy.sh
