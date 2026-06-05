@@ -4,6 +4,7 @@ data/*.db
 *.py[cod]
 .web
 .env
+.env.deploy
 __pycache__/
 assets/external/
 academicas.xlsx

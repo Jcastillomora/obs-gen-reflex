@@ -1,7 +1,14 @@
 .env
+.env.deploy
 .git
+.github
 __pycache__
 *.pyc
 env/
 .venv/
 *.db
+*.xlsx
+*.log
+deploy.sh
+README.md
+actions-runner/

@@ -2,9 +2,18 @@
 set -e
 
 # === Configuración ===
-PROJECT_DIR="$HOME/obs-gen-reflex"
 BRANCH="main"
 COMPOSE_FILE="compose.yaml"
+
+# Cargar variables del servidor (no están en git)
+DEPLOY_ENV="$(dirname "$0")/.env.deploy"
+if [ -f "$DEPLOY_ENV" ]; then
+    source "$DEPLOY_ENV"
+else
+    echo "ERROR: Falta .env.deploy en el directorio del proyecto" >&2
+    exit 1
+fi
+
 LOG_FILE="$PROJECT_DIR/deploy.log"
 
 # === Colores ===
@@ -36,13 +45,13 @@ mkdir -p assets/uploads
 
 # === Build y Deploy ===
 log "Construyendo imágenes y levantando contenedores..."
-DOMAIN=observatoriogeneroyciencia.ufro.cl \
+DOMAIN="$DOMAIN" \
     docker compose -f "$COMPOSE_FILE" up -d --build --force-recreate 2>&1 | tee -a "$LOG_FILE"
 
 # === Limpieza ===
-log "Limpiando imágenes antiguas..."
+log "Limpiando imágenes y cache Docker..."
 docker image prune -f
-docker builder prune -f --filter "until=24h"
+docker builder prune -f
 
 # === Verificación ===
 echo ""
@@ -50,12 +59,14 @@ log "Estado de contenedores:"
 docker compose -f "$COMPOSE_FILE" ps
 echo ""
 
-DISK_USAGE=$(df -h / | awk 'NR==2 {print $5}')
-log "Uso de disco: $DISK_USAGE"
+DISK_PCT=$(df / | awk 'NR==2 {gsub(/%/,""); print $5}')
+log "Uso de disco: ${DISK_PCT}%"
 
-DISK_PCT=$(echo "$DISK_USAGE" | tr -d '%')
 if [ "$DISK_PCT" -gt 80 ]; then
-    warn "Disco sobre 80%. Considera limpiar con: docker system prune -a"
+    warn "Disco sobre 80% — ejecutando limpieza profunda..."
+    docker system prune -f
+    DISK_PCT=$(df / | awk 'NR==2 {gsub(/%/,""); print $5}')
+    log "Uso de disco tras limpieza: ${DISK_PCT}%"
 fi
 
 echo ""
