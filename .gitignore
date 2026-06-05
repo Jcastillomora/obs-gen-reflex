@@ -1,5 +1,6 @@
 .states
-*.db
+data/*.db
+!data/.gitkeep
 *.py[cod]
 .web
 .env

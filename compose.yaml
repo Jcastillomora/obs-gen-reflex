@@ -12,7 +12,6 @@ services:
     volumes:
       - db-data:/app/data
       - ./OCDE/assets/uploads:/app/OCDE/assets/uploads
-      - /home/admobge/obs-gen-reflex/OCDE/backend/:/app/OCDE/backend/
     restart: always
 
   webserver:
