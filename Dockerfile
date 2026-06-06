@@ -15,16 +15,19 @@ RUN /install.sh && rm /install.sh
 
 # Copy local context to `/app` inside container (see .dockerignore)
 WORKDIR /app
-COPY . .
-RUN mkdir -p /app/data /app/assets/uploads /app/.states
 
-# Create virtualenv which will be copied into final container
+# Create virtualenv
 ENV VIRTUAL_ENV=/app/.venv
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 RUN $uv venv
 
-# Install app requirements and reflex inside virtualenv
+# Install dependencies first (cached if requirements.txt no cambia)
+COPY requirements.txt .
 RUN $uv pip install -r requirements.txt
+
+# Copy the rest of the app
+COPY . .
+RUN mkdir -p /app/data /app/assets/uploads /app/.states
 
 # Deploy templates and prepare app
 RUN reflex init
@@ -48,5 +51,5 @@ ENV PATH="/app/.venv/bin:$PATH" PYTHONUNBUFFERED=1
 STOPSIGNAL SIGKILL
 
 # Always apply migrations before starting the backend.
-CMD [ -d alembic ] && reflex db migrate; \
+CMD ([ -d alembic ] && reflex db migrate || true) && \
     exec reflex run --env prod --backend-only
