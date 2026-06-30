@@ -18,6 +18,7 @@ pypdf==6.4.2
 # Config y utilidades
 python-dotenv==1.2.1
 pydantic==2.10.6
+requests==2.32.3
 
 # Base de datos
 sqlmodel==0.0.24
