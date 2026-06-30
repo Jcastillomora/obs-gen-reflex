@@ -44,9 +44,17 @@ fi
 mkdir -p assets/uploads
 
 # === Build y Deploy ===
-log "Construyendo imágenes y levantando contenedores..."
+log "Construyendo imagen de la app..."
 DOMAIN="$DOMAIN" \
-    docker compose -f "$COMPOSE_FILE" up -d --build --force-recreate 2>&1 | tee -a "$LOG_FILE"
+    docker compose -f "$COMPOSE_FILE" build app 2>&1 | tee -a "$LOG_FILE"
+
+log "Construyendo imagen del webserver (sin caché)..."
+DOMAIN="$DOMAIN" \
+    docker compose -f "$COMPOSE_FILE" build --no-cache webserver 2>&1 | tee -a "$LOG_FILE"
+
+log "Levantando contenedores..."
+DOMAIN="$DOMAIN" \
+    docker compose -f "$COMPOSE_FILE" up -d --force-recreate 2>&1 | tee -a "$LOG_FILE"
 
 # === Limpieza ===
 log "Limpiando imágenes y cache Docker..."
