@@ -165,7 +165,7 @@ def obs_otros_indicadores():
                     """
                     <iframe
                         title='indicadores_ines_genero_v2'
-                        src='https://app.powerbi.com/view?r=eyJrIjoiM2U1MzJmZTItYzEyZC00ZjBiLTkwMDItODVjOTIwOGNmOWZjIiwidCI6ImZjZDlhYmQ4LWRmY2QtNGExYS1iNzE5LThhMTNhY2ZkNWVkOSIsImMiOjR9'
+                        src='https://app.powerbi.com/view?r=eyJrIjoiZmJhMzk1ZTQtZTc5OS00NTJmLWEyNWMtY2RlMDFhZGY2YzM5IiwidCI6ImZjZDlhYmQ4LWRmY2QtNGExYS1iNzE5LThhMTNhY2ZkNWVkOSIsImMiOjR9'
                         frameborder='0'
                         allowFullScreen='true'
                         style='aspect-ratio: 16/9; width: 100%;'
