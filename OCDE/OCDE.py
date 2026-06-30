@@ -137,6 +137,51 @@ def obs_otros_indicadores():
         class_name="w-full bg-white",
     )
 
+@rx.page(route="/huella_genero", title="Huella de Género")
+def obs_otros_indicadores():
+    return rx.vstack(
+        huincha(),
+        banner_generator("/banner_indicadores.png"),
+        navbar_main(),
+        rx.box(
+            rx.desktop_only(
+                rx.html(
+                    """
+                    <iframe
+                        title='indicadores_ines_genero_v2'
+                        src='https://app.powerbi.com/view?r=eyJrIjoiZmJhMzk1ZTQtZTc5OS00NTJmLWEyNWMtY2RlMDFhZGY2YzM5IiwidCI6ImZjZDlhYmQ4LWRmY2QtNGExYS1iNzE5LThhMTNhY2ZkNWVkOSIsImMiOjR9'
+                        frameborder='0'
+                        allowFullScreen='true'
+                        width='800'
+                        height='636'
+                        style='aspect-ratio: 16/9; width: 100%;'
+                    ></iframe>
+                    """
+                ),
+                class_name="p-10",
+            ),
+            rx.mobile_and_tablet(
+                rx.html(
+                    """
+                    <iframe
+                        title='indicadores_ines_genero_v2'
+                        src='https://app.powerbi.com/view?r=eyJrIjoiM2U1MzJmZTItYzEyZC00ZjBiLTkwMDItODVjOTIwOGNmOWZjIiwidCI6ImZjZDlhYmQ4LWRmY2QtNGExYS1iNzE5LThhMTNhY2ZkNWVkOSIsImMiOjR9'
+                        frameborder='0'
+                        allowFullScreen='true'
+                        style='aspect-ratio: 16/9; width: 100%;'
+                    ></iframe>
+                    """
+                ),
+            ),
+            width="100%",
+            class_name="sm:p-2 px-3 justify-center items-center",
+            style={"overflowX": "hidden"},
+        ),
+        superbanner(),
+        footer_inst(),
+        spacing="0",
+        class_name="w-full bg-white",
+    )
 
 # Página de repositorio
 @rx.page(route="/obs_repositorio", title="Repositorio", on_load=State.load_repositorio)

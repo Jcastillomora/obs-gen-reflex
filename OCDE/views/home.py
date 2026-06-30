@@ -235,6 +235,7 @@ def navbar_main() -> rx.Component:
                         rx.menu.content(
                             navbar_link_dropdown("Indicadores ANID", "/obs_indicadores"),
                             navbar_link_dropdown("Otros Indicadores", "/obs_otros_indicadores"),
+                            navbar_link_dropdown("Huella de Género", "/huella_genero"),
                             class_name="bg-slate-300 rounded-md shadow-md",
                         ),
                     ),
@@ -277,6 +278,7 @@ def navbar_main() -> rx.Component:
                             rx.menu.content(
                                 navbar_link_dropdown("Indicadores ANID", "/obs_indicadores"),
                                 navbar_link_dropdown("Otros Indicadores", "/obs_otros_indicadores"),
+                                navbar_link_dropdown("Huella de Género", "/huella_genero"),
                                 class_name="bg-slate-300 rounded-md shadow-md",
                             ),
                         ),
