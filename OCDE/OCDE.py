@@ -360,7 +360,7 @@ def investigador_card(
                 rx.link(
                     rx.button(
                         rx.icon("circle-arrow-right", size=16),
-                        "Contactar",
+                        "Ver más",
                         size="2",
                         variant="solid",
                         color_scheme="purple",
@@ -588,7 +588,7 @@ def investigator_page():
                             rx.link(
                                 rx.button(
                                     rx.icon("message-circle-more", size=16),
-                                    "Contactar",
+                                    "Ver más",
                                     size="2",
                                     cursor="pointer",
                                     class_name=(
