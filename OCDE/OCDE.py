@@ -5,7 +5,7 @@ load_dotenv()  # cargar .env antes de cualquier import que use variables de ento
 from .backend.backend import State
 from .backend.admin_state import AdminState
 from .views.navbar import navbar
-from .views.table import main_table, pub_table
+from .views.table import main_table, pub_table, libros_table
 from .views.stats import stats_ui
 from .views.footer import footer
 from .views.searchbar import navbar_searchbar, navbar_searchbar_notsearch
@@ -418,7 +418,7 @@ def adaptive_badge(item: rx.Var[str]) -> rx.Component:
 # Página perfil del investigador
 @rx.page(
     route="/investigadora/[id]",
-    on_load=[State.load_entries_pub, State.load_entries, State.load_grid_data],
+    on_load=[State.load_entries_pub, State.load_entries, State.load_grid_data, State.load_entries_libros],
 )
 def investigator_page():
     """Muestra el detalle del investigador según el índice en la URL."""
@@ -682,6 +682,7 @@ def investigator_page():
                 rx.tabs.list(
                     _tabs_trigger("Proyectos", "notebook-pen", value="projects"),
                     _tabs_trigger("Publicaciones", "scroll-text", value="publications"),
+                    _tabs_trigger("Libros", "book-open", value="books"),
                     class_name="w-full flex flex-col sm:flex-row gap-2",
                 ),
                 rx.tabs.content(
@@ -694,9 +695,13 @@ def investigator_page():
                     value="publications",
                     class_name="w-full overflow-x-auto py-5 text-base",
                 ),
+                rx.tabs.content(
+                    libros_table(),
+                    value="books",
+                    class_name="w-full overflow-x-auto py-5 text-base",
+                ),
                 default_value="projects",
                 width="100%",
-                # class_name="py-5",
             ),
             class_name="w-full p-2 sm:p-10",
             spacing="0",

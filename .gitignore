@@ -10,9 +10,12 @@ assets/external/
 academicas.xlsx
 publicaciones_total.xlsx
 proyectos_total.xlsx
+libros_total.xlsx
+proyectos.xlsx
 
 # Claude Code
 .claude/
+.compliance/
 CLAUDE.md
 skills-lock.json
 2026-*.txt

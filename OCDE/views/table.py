@@ -1,7 +1,27 @@
 import reflex as rx
-from ..backend.backend import State, Proyectos, Publicaciones
+from ..backend.backend import State, Proyectos, Publicaciones, Libros
 # from ..backend.data_items import teams_dict, position_dict
 from ..backend.data_items import años_dict, disciplinas_dict, unidades_dict
+
+
+def _sort_button(label: str, on_click, is_desc: rx.Var) -> rx.Component:
+    """Botón de toggle de orden ascendente/descendente."""
+    return rx.button(
+        rx.hstack(
+            rx.icon(
+                rx.cond(is_desc, "arrow-down-z-a", "arrow-up-z-a"),
+                size=15,
+            ),
+            rx.text(rx.cond(is_desc, f"{label}: Z→A / reciente", f"{label}: A→Z / antiguo"), size="1"),
+            spacing="1",
+            align="center",
+        ),
+        on_click=on_click,
+        size="1",
+        variant="soft",
+        color_scheme="indigo",
+        class_name="mb-2",
+    )
 
 
 def _header_cell(text: str, icon: str) -> rx.Component:
@@ -16,15 +36,27 @@ def _header_cell(text: str, icon: str) -> rx.Component:
     )
 
 
-def _show_player(proyectos: Proyectos, index: int) -> rx.Component:
+def _periodo(p: Proyectos) -> rx.Component:
+    """Muestra 'a_inicio – a_fin' cuando están disponibles, si no '—'."""
+    return rx.cond(
+        p.a_inicio != "",
+        rx.text(p.a_inicio + rx.cond(p.a_fin != "", " – " + p.a_fin, "")),
+        rx.text("—", class_name="text-gray-400"),
+    )
 
+
+def _show_player(proyectos: Proyectos, index: int) -> rx.Component:
     return rx.table.row(
-        rx.table.row_header_cell(proyectos.codigo),
-        rx.table.cell(proyectos.titulo),
-        rx.table.cell(proyectos.año),
-        rx.table.cell(proyectos.ocde_2),
-        rx.table.cell(proyectos.tipo_proyecto),
+        rx.table.row_header_cell(proyectos.titulo),
+        rx.table.cell(_periodo(proyectos)),
         rx.table.cell(proyectos.rol),
+        rx.table.cell(
+            rx.cond(
+                proyectos.fuente != "",
+                rx.text(proyectos.fuente),
+                rx.text("—", class_name="text-gray-400"),
+            )
+        ),
         align="center",
         size="2",
         class_name="bg-white text-indigo-900 text-sm",
@@ -175,6 +207,105 @@ def _pagination_view_pub() -> rx.Component:
     )
 
 
+def _show_libro(libro: Libros, index: int) -> rx.Component:
+    return rx.table.row(
+        rx.table.row_header_cell(libro.titulo),
+        rx.table.cell(libro.año),
+        rx.table.cell(libro.editorial),
+        rx.table.cell(libro.isbn),
+        rx.table.cell(libro.autores),
+        align="center",
+        size="2",
+        class_name="bg-white text-indigo-900 text-sm",
+    )
+
+
+def _pagination_view_libros() -> rx.Component:
+    """Paginación para LIBROS"""
+    return (
+        rx.hstack(
+            rx.text(
+                "Página ",
+                State.page_number_libros,
+                f" de {State.total_pages_libros}",
+                justify="end",
+                class_name="text-gray-700",
+            ),
+            rx.hstack(
+                rx.icon_button(
+                    rx.icon("chevrons-left", size=18),
+                    on_click=State.first_page_libros,
+                    opacity=rx.cond(State.page_number_libros == 1, 0.6, 1),
+                    color_scheme=rx.cond(State.page_number_libros == 1, "gray", "accent"),
+                    variant="solid",
+                ),
+                rx.icon_button(
+                    rx.icon("chevron-left", size=18),
+                    on_click=State.prev_page_libros,
+                    opacity=rx.cond(State.page_number_libros == 1, 0.6, 1),
+                    color_scheme=rx.cond(State.page_number_libros == 1, "gray", "accent"),
+                    variant="solid",
+                ),
+                rx.icon_button(
+                    rx.icon("chevron-right", size=18),
+                    on_click=State.next_page_libros,
+                    opacity=rx.cond(State.page_number_libros == State.total_pages_libros, 0.6, 1),
+                    color_scheme=rx.cond(
+                        State.page_number_libros == State.total_pages_libros, "gray", "accent"
+                    ),
+                    variant="solid",
+                ),
+                rx.icon_button(
+                    rx.icon("chevrons-right", size=18),
+                    on_click=State.last_page_libros,
+                    opacity=rx.cond(State.page_number_libros == State.total_pages_libros, 0.6, 1),
+                    color_scheme=rx.cond(
+                        State.page_number_libros == State.total_pages_libros, "gray", "accent"
+                    ),
+                    variant="solid",
+                ),
+                align="center",
+                spacing="2",
+                justify="end",
+            ),
+            spacing="5",
+            margin_top="1em",
+            align="center",
+            width="100%",
+            justify="end",
+        ),
+    )
+
+
+# Tabla de libros
+def libros_table() -> rx.Component:
+    return rx.fragment(
+        _sort_button("Año", State.toggle_sort_libros, State.sort_reverse_libros),
+        rx.table.root(
+            rx.table.header(
+                rx.table.row(
+                    _header_cell("Título", "book-open"),
+                    _header_cell("Año", "calendar"),
+                    _header_cell("Editorial", "building-2"),
+                    _header_cell("ISBN", "barcode"),
+                    _header_cell("Autores", "users"),
+                ),
+                class_name="w-full bg-indigo-400",
+            ),
+            rx.table.body(
+                rx.foreach(
+                    State.get_current_page_libros,
+                    lambda libro, index: _show_libro(libro, index),
+                )
+            ),
+            variant="surface",
+            size="2",
+            class_name="w-full",
+        ),
+        _pagination_view_libros(),
+    )
+
+
 class EventArgState(rx.State):
     form_data: dict = {}
 
@@ -186,15 +317,14 @@ class EventArgState(rx.State):
 #Tabla de proyectos
 def main_table() -> rx.Component:
     return rx.fragment(
+        _sort_button("Año", State.toggle_sort, State.sort_reverse),
         rx.table.root(
             rx.table.header(
                 rx.table.row(
-                    _header_cell("Código", "text-search"),
                     _header_cell("Título", "notebook-pen"),
-                    _header_cell("Año", "calendar"),
-                    _header_cell("Disciplina", "user-round-search"),
-                    _header_cell("Tipo proyecto", "filter"),
+                    _header_cell("Período", "calendar-range"),
                     _header_cell("Rol", "building"),
+                    _header_cell("Fuente", "landmark"),
                 ),
                 class_name="w-full bg-indigo-400",
             ),
@@ -215,6 +345,7 @@ def main_table() -> rx.Component:
 #Tabla de publicaciones
 def pub_table() -> rx.Component:
     return rx.fragment(
+        _sort_button("Año", State.toggle_sort_pub, State.sort_reverse_pub),
         rx.table.root(
             rx.table.header(
                 rx.table.row(

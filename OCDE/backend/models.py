@@ -40,14 +40,29 @@ class Publicaciones(rx.Base):
 
 # modelo de la base de datos para los proyectos
 class Proyectos(rx.Base):
-    codigo: str
-    titulo: str
-    año: str
-    ocde_2: str
-    tipo_proyecto: str
-    investigador_responsable: str
-    rut_ir: str
-    rol: str
+    titulo: str = ""
+    rol: str = ""
+    fuente: str = ""
+    a_inicio: str = ""
+    a_fin: str = ""
+    rut_ir: str = ""
+    # campos legacy de proyectos_total (no usados en tabla actual)
+    codigo: str = ""
+    año: str = ""
+    ocde_2: str = ""
+    tipo_proyecto: str = ""
+    investigador_responsable: str = ""
+
+
+# modelo de la base de datos para los libros
+class Libros(rx.Base):
+    rut_ir: str = ""
+    titulo: str = "Sin info"
+    tipo: str = "Sin info"        # "libro" | "capitulo de libro"
+    editorial: str = "Sin info"
+    año: str = "Sin info"
+    isbn: str = "Sin info"
+    autores: str = "Sin info"
 
 
 # modelo SQLite para documentos del repositorio

@@ -14,7 +14,7 @@ import unicodedata
 from urllib.parse import quote
 from .data_items import all_items
 from .data_cache import DataCache  # Caché compartido
-from .models import Investigador, Publicaciones, Proyectos, Documento
+from .models import Investigador, Publicaciones, Proyectos, Documento, Libros
 from typing import Dict, List, Optional
 from sqlmodel import select
 
@@ -84,6 +84,7 @@ class State(rx.State):
     proyectos: list[Proyectos] = []
     investigadores: list[Investigador] = []
     publicaciones: list[Publicaciones] = []
+    libros: list[Libros] = []
     grid_data: list[dict] = []
     grid_data2: list[dict] = []
 
@@ -93,6 +94,8 @@ class State(rx.State):
     search_value_card: str = ""
     sort_value: str = ""
     sort_reverse: bool = False
+    sort_reverse_pub: bool = False
+    sort_reverse_libros: bool = False
     search_term: str = ""
     filtered_count: int = 0
     filtered_year: list = []
@@ -103,10 +106,12 @@ class State(rx.State):
     search_rol: str = ""
 
     total_items: int = 0
-    total_items_pub: int = 0  # Para publicaciones
+    total_items_pub: int = 0
+    total_items_libros: int = 0
     total_investigadores: int = 0
     offset: int = 0
-    offset_pub: int = 0  # Para publicaciones
+    offset_pub: int = 0
+    offset_libros: int = 0
     limit: int = 24
 
     name: str = ""
@@ -298,13 +303,13 @@ class State(rx.State):
         if self.current_investigator:
             rut = str(self.current_investigator.rut_ir)
             
-            df_proy = DataCache.get_proyectos_by_rut(rut)
+            df_proy = DataCache.get_proyectos_extra_by_rut(rut)
             df_pub = DataCache.get_publicaciones_by_rut(rut)
-            
+
             self.grid_data = df_proy.to_dict("records") if not df_proy.empty else []
             self.grid_data2 = df_pub.to_dict("records") if not df_pub.empty else []
             self.filtered_count = len(df_proy)
-            self.filtered_year = df_proy["año"].tolist() if not df_proy.empty else []
+            self.filtered_year = df_proy["a_inicio"].dropna().tolist() if not df_proy.empty and "a_inicio" in df_proy.columns else []
             self.filtered_count_pub = len(df_pub)
 
     def set_search_term(self, term: str):
@@ -386,22 +391,23 @@ class State(rx.State):
     
     @rx.event
     def load_entries(self):
-        """Carga proyectos del investigador actual usando DataCache."""
+        """Carga proyectos del investigador actual usando proyectos.xlsx."""
         if self.current_investigator is None:
             logger.error("load_entries: current_investigator es None.")
             return
 
         rut = str(self.current_investigator.rut_ir)
-        df = DataCache.get_proyectos_by_rut(rut)
-        
+        df = DataCache.get_proyectos_extra_by_rut(rut)
+
         if df.empty:
             self.proyectos = []
             self.total_items = 0
             return
-        
-        self.proyectos = [Proyectos(**row) for _, row in df.iterrows()]
+
+        _campos = ["rut_ir", "titulo", "rol", "fuente", "a_inicio", "a_fin"]
+        self.proyectos = [Proyectos(**{k: row[k] for k in _campos if k in row}) for _, row in df.iterrows()]
         self.total_items = len(self.proyectos)
-        self.offset = 0  # Resetear paginación al cargar nuevos proyectos
+        self.offset = 0
 
     # =========================================================
     # load_entries_pub - Requerido por OCDE.py línea 358
@@ -424,7 +430,26 @@ class State(rx.State):
         
         self.publicaciones = [Publicaciones(**row) for _, row in df.iterrows()]
         self.total_items_pub = len(self.publicaciones)
-        self.offset_pub = 0  # Resetear paginación al cargar nuevas publicaciones
+        self.offset_pub = 0
+
+    @rx.event
+    def load_entries_libros(self):
+        """Carga libros del investigador actual usando DataCache."""
+        if self.current_investigator is None:
+            logger.error("load_entries_libros: current_investigator es None.")
+            return
+
+        rut = str(self.current_investigator.rut_ir)
+        df = DataCache.get_libros_by_rut(rut)
+
+        if df.empty:
+            self.libros = []
+            self.total_items_libros = 0
+            return
+
+        self.libros = [Libros(**{k: row[k] for k in ["rut_ir", "titulo", "tipo", "editorial", "año", "isbn", "autores"] if k in row}) for _, row in df.iterrows()]
+        self.total_items_libros = len(self.libros)
+        self.offset_libros = 0
 
     # =========================================================
     # PROYECTOS Y PUBLICACIONES - FILTROS
@@ -443,10 +468,15 @@ class State(rx.State):
                 proyecto for proyecto in proyectos
                 if any(
                     search_value in str(getattr(proyecto, attr)).lower()
-                    for attr in ["codigo", "titulo", "año", "ocde_2", "tipo_proyecto", 
-                                "investigador_responsable", "rol"]
+                    for attr in ["codigo", "titulo", "año", "ocde_2", "tipo_proyecto",
+                                "investigador_responsable", "rol", "fuente"]
                 )
             ]
+        proyectos = sorted(
+            proyectos,
+            key=lambda p: int(p.a_inicio) if str(p.a_inicio).isdigit() else 0,
+            reverse=self.sort_reverse,
+        )
         return proyectos
 
     @rx.var
@@ -458,11 +488,24 @@ class State(rx.State):
                 publicacion for publicacion in publicaciones
                 if any(
                     search_value in str(getattr(publicacion, attr)).lower()
-                    for attr in ["año", "titulo", "revista", "cuartil", "autor", 
+                    for attr in ["año", "titulo", "revista", "cuartil", "autor",
                                 "wos_id", "liderado", "url"]
                 )
             ]
+        publicaciones = sorted(
+            publicaciones,
+            key=lambda p: int(p.año) if str(p.año).isdigit() else 0,
+            reverse=self.sort_reverse_pub,
+        )
         return publicaciones
+
+    @rx.var
+    def filtered_sorted_libros(self) -> list[Libros]:
+        return sorted(
+            self.libros,
+            key=lambda l: int(l.año) if str(l.año).isdigit() else 0,
+            reverse=self.sort_reverse_libros,
+        )
 
     # =========================================================
     # PAGINACIÓN - PROYECTOS
@@ -542,10 +585,56 @@ class State(rx.State):
         if self.total_pages_pub > 0:
             self.offset_pub = (self.total_pages_pub - 1) * self.limit
 
+    # =========================================================
+    # PAGINACIÓN - LIBROS
+    # =========================================================
+
+    @rx.var
+    def page_number_libros(self) -> int:
+        return (self.offset_libros // self.limit) + 1
+
+    @rx.var
+    def total_pages_libros(self) -> int:
+        if self.total_items_libros == 0:
+            return 1
+        return (self.total_items_libros // self.limit) + (1 if self.total_items_libros % self.limit else 0)
+
+    @rx.var(initial_value=[])
+    def get_current_page_libros(self) -> list[Libros]:
+        start_index = self.offset_libros
+        end_index = start_index + self.limit
+        return self.filtered_sorted_libros[start_index:end_index]
+
+    @rx.event
+    def prev_page_libros(self):
+        if self.page_number_libros > 1:
+            self.offset_libros -= self.limit
+
+    @rx.event
+    def next_page_libros(self):
+        if self.page_number_libros < self.total_pages_libros:
+            self.offset_libros += self.limit
+
+    @rx.event
+    def first_page_libros(self):
+        self.offset_libros = 0
+
+    @rx.event
+    def last_page_libros(self):
+        if self.total_pages_libros > 0:
+            self.offset_libros = (self.total_pages_libros - 1) * self.limit
+
     @rx.event
     def toggle_sort(self):
         self.sort_reverse = not self.sort_reverse
-        self.load_entries()
+
+    @rx.event
+    def toggle_sort_pub(self):
+        self.sort_reverse_pub = not self.sort_reverse_pub
+
+    @rx.event
+    def toggle_sort_libros(self):
+        self.sort_reverse_libros = not self.sort_reverse_libros
 
     # =========================================================
     # SELECTED ITEMS
