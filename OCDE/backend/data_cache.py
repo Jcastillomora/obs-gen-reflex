@@ -380,12 +380,13 @@ class DataCache:
                 editorial = left or "Sin info"
             return editorial, año, isbn
 
-        if "editorial" in df.columns:
+        if "editorial" in df.columns and not df.empty:
             df[["editorial", "año", "isbn"]] = df["editorial"].astype(str).apply(
                 lambda x: pd.Series(_split_editorial_año_isbn(x))
             )
         else:
-            df["editorial"] = "Sin info"
+            if "editorial" not in df.columns:
+                df["editorial"] = "Sin info"
             df["año"] = "Sin info"
             df["isbn"] = "Sin info"
 
