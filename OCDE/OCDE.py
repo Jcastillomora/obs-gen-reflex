@@ -273,6 +273,20 @@ def academicas():
         navbar_main(),
         navbar_searchbar(),
         areas_selector(),
+        # Fecha del último scraping de publicaciones
+        rx.cond(
+            State.last_sync_date != "",
+            rx.box(
+                rx.text(
+                    "Última actualización de publicaciones: ",
+                    State.last_sync_date,
+                    size="2",
+                    class_name="text-gray-500 text-center italic"
+                ),
+                width="100%",
+                class_name="md:px-40 px-5 pt-2"
+            ),
+        ),
         # Mensaje de feedback de búsqueda
         rx.box(
             rx.text(

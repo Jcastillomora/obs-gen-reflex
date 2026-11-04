@@ -11,6 +11,9 @@ import asyncio
 import logging
 import re
 import unicodedata
+import json
+from pathlib import Path
+from datetime import datetime
 from urllib.parse import quote
 from .data_items import all_items
 from .data_cache import DataCache  # Caché compartido
@@ -147,6 +150,10 @@ class State(rx.State):
     # Repositorio (cargado de DB)
     reportes_items: list[dict] = []
     documentos_items: list[dict] = []
+
+    # Fecha del último scraping de publicaciones
+    last_sync_date: str = ""
+    last_sync_nuevas: int = 0
 
     # =========================================================
     # CAROUSEL
@@ -375,15 +382,46 @@ class State(rx.State):
         # Inicializar caché si no está listo
         if not DataCache.is_initialized():
             DataCache.initialize()
-        
+
         # Usar datos del caché
         self.investigadores = [
-            Investigador(**row) 
+            Investigador(**row)
             for row in DataCache.investigadores_list
         ]
-        
+
         self.total_investigadores = len(self.investigadores)
         self.all_areas = list(DataCache.all_areas)
+
+        # Cargar fecha del último scraping
+        self.load_last_sync_date()
+
+    def load_last_sync_date(self):
+        """Carga la fecha del último scraping de publicaciones desde archivo JSON."""
+        try:
+            last_sync_file = Path(__file__).parent.parent / ".last_sync.json"
+
+            if not last_sync_file.exists():
+                self.last_sync_date = ""
+                self.last_sync_nuevas = 0
+                return
+
+            with open(last_sync_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+
+            # Parsear la fecha ISO y formatearla de forma legible
+            fecha_iso = data.get("last_sync", "")
+            if fecha_iso:
+                fecha_dt = datetime.fromisoformat(fecha_iso)
+                self.last_sync_date = fecha_dt.strftime("%d/%m/%Y %H:%M")
+            else:
+                self.last_sync_date = ""
+
+            self.last_sync_nuevas = data.get("publicaciones_nuevas", 0)
+
+        except Exception as e:
+            logger.warning(f"No se pudo cargar fecha de último sync: {e}")
+            self.last_sync_date = ""
+            self.last_sync_nuevas = 0
 
     # =========================================================
     # load_entries - Requerido por OCDE.py línea 358
