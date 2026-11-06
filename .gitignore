@@ -7,6 +7,10 @@ data/*.db
 .env.deploy
 __pycache__/
 assets/external/
+assets/uploads/*.pdf
+assets/uploads/*.xlsx
+assets/uploads/*.docx
+!assets/uploads/.gitkeep
 academicas.xlsx
 publicaciones_total.xlsx
 proyectos_total.xlsx

@@ -192,15 +192,8 @@ def obs_repositorio():
         navbar_main(),
         rx.vstack(
             rx.spacer(),
-            rx.callout(
-                "Pronto subiremos el primer reporte del Observatorio",
-                icon="info",
-                color_scheme="tomato",
-                class_name="w-full text-center",
-                # role="alert",
-            ),
-            chatbot_assistant(),
             repo_menu(),
+            chatbot_assistant(),
             class_name="w-full bg-white sm:w-3/4 p-5",
             spacing="2",
         ),
