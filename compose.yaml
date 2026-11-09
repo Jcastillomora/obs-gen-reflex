@@ -13,7 +13,8 @@ services:
       - ./assets/uploads:/app/assets/uploads
       - ./academicas.xlsx:/app/academicas.xlsx:ro
       - ./proyectos_total.xlsx:/app/proyectos_total.xlsx:ro
-      - ./publicaciones_total.xlsx:/app/publicaciones_total.xlsx:ro
+      - ./publicaciones_total.xlsx:/app/publicaciones_total.xlsx
+      - ./OCDE/.last_sync.json:/app/OCDE/.last_sync.json
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/ping')"]
