@@ -88,10 +88,25 @@ def _detectar_tipo_pub(texto: str) -> str:
     return "Otra"
 
 # ── Paso 1: Buscar listado ─────────────────────────────────────────────────────
-def _buscar_lista(session: requests.Session, nombre: str, ap1: str) -> list[dict]:
-    r = session.post(URL_LISTA, data=_make_payload(nombre, ap1), headers=HEADERS, timeout=15)
-    r.encoding = "iso-8859-1"
-    soup = BeautifulSoup(r.text, "html.parser")
+def _buscar_lista(session: requests.Session, nombre: str, ap1: str, max_retries=3, timeout=30) -> list[dict]:
+    """Busca investigadores en la lista con retry logic para manejar timeouts."""
+    for intento in range(max_retries):
+        try:
+            r = session.post(URL_LISTA, data=_make_payload(nombre, ap1), headers=HEADERS, timeout=timeout)
+            r.encoding = "iso-8859-1"
+            soup = BeautifulSoup(r.text, "html.parser")
+            break  # Si llegó aquí, salir del loop de retry
+        except requests.exceptions.Timeout as e:
+            if intento < max_retries - 1:
+                espera = (intento + 1) * 2
+                print(f"\n      ⚠ Timeout en lista (intento {intento+1}/{max_retries}), reintentando en {espera}s...", end=" ", flush=True)
+                time.sleep(espera)
+            else:
+                print(f"\n      ✗ Error en lista después de {max_retries} intentos: {e}", flush=True)
+                return []  # Retornar lista vacía si falla
+        except Exception as e:
+            print(f"\n      ✗ Error inesperado en lista: {e}", flush=True)
+            return []
 
     resultados = []
     for fila in soup.select("table.Tabla_lst tr"):
@@ -204,15 +219,32 @@ def _parsear_detalle(html: str) -> dict:
         "proyectos":    json.dumps(proyectos, ensure_ascii=False),
     }
 
-def _obtener_detalle(session, nombre, ap1, parametro_id) -> dict:
-    r = session.post(
-        URL_DETALLE,
-        data=_make_payload(nombre, ap1, parametro=parametro_id),
-        headers=HEADERS,
-        timeout=15,
-    )
-    r.encoding = "iso-8859-1"
-    return _parsear_detalle(r.text)
+def _obtener_detalle(session, nombre, ap1, parametro_id, max_retries=3, timeout=30) -> dict:
+    """Obtiene el detalle del CV con retry logic para manejar timeouts."""
+    for intento in range(max_retries):
+        try:
+            r = session.post(
+                URL_DETALLE,
+                data=_make_payload(nombre, ap1, parametro=parametro_id),
+                headers=HEADERS,
+                timeout=timeout,
+            )
+            r.encoding = "iso-8859-1"
+            return _parsear_detalle(r.text)
+        except requests.exceptions.Timeout as e:
+            if intento < max_retries - 1:
+                espera = (intento + 1) * 2  # backoff: 2s, 4s, 6s
+                print(f"\n      ⚠ Timeout (intento {intento+1}/{max_retries}), reintentando en {espera}s...", end=" ", flush=True)
+                time.sleep(espera)
+            else:
+                print(f"\n      ✗ Error después de {max_retries} intentos: {e}", flush=True)
+                # Retornar valores vacíos en lugar de fallar
+                return {"email": "", "publicaciones": "[]", "proyectos": "[]"}
+        except Exception as e:
+            print(f"\n      ✗ Error inesperado: {e}", flush=True)
+            return {"email": "", "publicaciones": "[]", "proyectos": "[]"}
+
+    return {"email": "", "publicaciones": "[]", "proyectos": "[]"}
 
 # ── Pipeline principal ─────────────────────────────────────────────────────────
 def scrape(ruta_csv: str, delay: float = 1.5) -> list:
@@ -228,7 +260,19 @@ def scrape(ruta_csv: str, delay: float = 1.5) -> list:
     """
     df_in = pd.read_csv(ruta_csv, dtype=str).fillna("")
     session = requests.Session()
-    session.get(f"{BASE}/ver_cv_investigacion.php", timeout=15)  # obtiene PHPSESSID
+
+    # Obtener PHPSESSID con retry logic
+    for intento in range(3):
+        try:
+            session.get(f"{BASE}/ver_cv_investigacion.php", timeout=30)
+            break
+        except requests.exceptions.Timeout:
+            if intento < 2:
+                print(f"⚠ Timeout al iniciar sesión, reintentando ({intento+1}/3)...")
+                time.sleep(2)
+            else:
+                print("✗ Error: No se pudo conectar al servidor después de 3 intentos")
+                raise
 
     registros = []
     total = len(df_in)
