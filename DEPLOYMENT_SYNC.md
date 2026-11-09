@@ -4,7 +4,7 @@ Este documento describe cómo desplegar los cambios para habilitar la sincroniza
 
 ## Cambios Realizados
 
-1. ✅ **compose.yaml**: Modificado para permitir escritura en `publicaciones_total.xlsx` y montar `.last_sync.json`
+1. ✅ **compose.yaml**: Modificado para permitir escritura en `publicaciones_total.xlsx` y montar `.last_sync.json` en la raíz
 2. ✅ **scripts/docker_sync.sh**: Script helper para ejecutar sync dentro del contenedor (Linux/Ubuntu)
 3. ✅ **scripts/docker_sync.bat**: Script helper para ejecutar sync dentro del contenedor (Windows)
 4. ✅ **scripts/setup_cron_docker.sh**: Script para configurar cron automáticamente en producción
@@ -20,7 +20,7 @@ git add compose.yaml scripts/docker_sync.sh scripts/docker_sync.bat scripts/setu
 git commit -m "agregar soporte para sync de publicaciones en Docker
 
 - Modificar compose.yaml para permitir escritura en publicaciones_total.xlsx
-- Montar OCDE/.last_sync.json para persistir fecha de último sync
+- Montar .last_sync.json en la raíz para persistir fecha de último sync
 - Agregar scripts helper para ejecutar sync en contenedor Docker
 - Documentar configuración en CLAUDE.md"
 git push
@@ -45,7 +45,8 @@ git pull origin main
 
 ```bash
 # Crear archivo vacío para que Docker pueda montarlo
-touch ~/obs-gen-reflex/OCDE/.last_sync.json
+touch ~/obs-gen-reflex/.last_sync.json
+chmod 666 ~/obs-gen-reflex/.last_sync.json
 ```
 
 ### 5. Reiniciar los contenedores con la nueva configuración
@@ -81,7 +82,7 @@ bash scripts/docker_sync.sh
 ### 7. Verificar que se creó el archivo .last_sync.json
 
 ```bash
-cat ~/obs-gen-reflex/OCDE/.last_sync.json
+cat ~/obs-gen-reflex/.last_sync.json
 ```
 
 Deberías ver algo como:
@@ -145,13 +146,13 @@ tail -n 50 /var/log/ocde_sync.log
 **Solución**:
 ```bash
 # Verificar que el archivo existe en el host
-ls -la ~/obs-gen-reflex/OCDE/.last_sync.json
+ls -la ~/obs-gen-reflex/.last_sync.json
 
 # Si no existe, crearlo
-touch ~/obs-gen-reflex/OCDE/.last_sync.json
+touch ~/obs-gen-reflex/.last_sync.json
 
 # Darle permisos de escritura
-chmod 666 ~/obs-gen-reflex/OCDE/.last_sync.json
+chmod 666 ~/obs-gen-reflex/.last_sync.json
 
 # Ejecutar el sync nuevamente
 bash scripts/docker_sync.sh
@@ -196,10 +197,10 @@ cd ~/obs-gen-reflex && docker compose exec -T app python scripts/sync_publicacio
 **Solución**:
 ```bash
 # Verificar que el archivo .last_sync.json existe y tiene contenido
-cat ~/obs-gen-reflex/OCDE/.last_sync.json
+cat ~/obs-gen-reflex/.last_sync.json
 
 # Verificar que el contenedor está montando el archivo correctamente
-docker compose exec app cat /app/OCDE/.last_sync.json
+docker compose exec app cat /app/.last_sync.json
 
 # Si el archivo está vacío o no existe dentro del contenedor, reiniciar:
 docker compose restart app
@@ -219,7 +220,7 @@ bash scripts/docker_sync.sh --dry-run
 tail -f /var/log/ocde_sync.log
 
 # Ver contenido del .last_sync.json
-cat ~/obs-gen-reflex/OCDE/.last_sync.json
+cat ~/obs-gen-reflex/.last_sync.json
 
 # Reiniciar el contenedor de la app
 docker compose restart app
