@@ -398,7 +398,8 @@ class State(rx.State):
     def load_last_sync_date(self):
         """Carga la fecha del último scraping de publicaciones desde archivo JSON."""
         try:
-            last_sync_file = Path(__file__).parent.parent / ".last_sync.json"
+            # Archivo en la raíz del proyecto (no en OCDE/)
+            last_sync_file = Path(__file__).parent.parent.parent / ".last_sync.json"
 
             if not last_sync_file.exists():
                 self.last_sync_date = ""

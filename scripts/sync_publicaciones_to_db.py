@@ -46,7 +46,7 @@ from scraper_publicaciones import scrape
 ACADEMICAS_FILE = ROOT / "academicas.xlsx"
 OUTPUT_EXCEL = ROOT / "publicaciones_total.xlsx"
 DB_PATH = ROOT / "data" / "ocde.db"
-LAST_SYNC_FILE = ROOT / "OCDE" / ".last_sync.json"
+LAST_SYNC_FILE = ROOT / ".last_sync.json"  # Raíz del proyecto (no OCDE/)
 
 DEFAULT_DELAY = float(os.environ.get("SCRAPER_DELAY", "1.5"))
 
