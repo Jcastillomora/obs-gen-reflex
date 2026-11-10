@@ -181,16 +181,22 @@ def actualizar_excel(df_nuevas: pd.DataFrame, dry_run: bool = False) -> int:
             print(f"      [DRY-RUN] Total final: {len(df_combinado)} publicaciones")
             return len(df_combinado)
 
-        # Backup del anterior
+        # Backup del anterior (solo si tenemos permisos de escritura en el directorio)
         if OUTPUT_EXCEL.exists():
-            backup = OUTPUT_EXCEL.with_name(
-                f"publicaciones_total_backup_{datetime.now():%Y%m%d_%H%M}.xlsx"
-            )
-            OUTPUT_EXCEL.rename(backup)
-            print(f"      Backup creado: {backup.name}")
+            try:
+                backup = OUTPUT_EXCEL.with_name(
+                    f"publicaciones_total_backup_{datetime.now():%Y%m%d_%H%M}.xlsx"
+                )
+                OUTPUT_EXCEL.rename(backup)
+                print(f"      ✓ Backup creado: {backup.name}")
+            except (PermissionError, OSError) as e:
+                # En Docker, el archivo está montado desde el host (ya tiene backup implícito)
+                print(f"      ⚠ Backup omitido (sin permisos en directorio, común en Docker)")
+                # Leer el Excel existente antes de sobrescribirlo
+                df_existente_temp = pd.read_excel(OUTPUT_EXCEL, dtype=str).fillna("")
 
         df_combinado.to_excel(OUTPUT_EXCEL, index=False)
-        print(f"      Excel actualizado: {len(df_combinado)} publicaciones totales")
+        print(f"      ✓ Excel actualizado: {len(df_combinado)} publicaciones totales ({len(df_nuevas)} nuevas agregadas)")
         return len(df_combinado)
 
     except Exception as e:
