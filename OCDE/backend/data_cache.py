@@ -98,19 +98,19 @@ class DataCache:
                 publicaciones_path = PUBLICACIONES_FILE
                 libros_path = LIBROS_FILE
 
-            # Cargar DataFrames
-            cls.df_academicas = pd.read_excel(academicas_path)
-            cls.df_proyectos = pd.read_excel(proyectos_path)
-            cls.df_publicaciones = pd.read_excel(publicaciones_path)
+            # Cargar DataFrames (dtype=str preserva RUTs con ceros iniciales)
+            cls.df_academicas = pd.read_excel(academicas_path, dtype=str)
+            cls.df_proyectos = pd.read_excel(proyectos_path, dtype=str)
+            cls.df_publicaciones = pd.read_excel(publicaciones_path, dtype=str)
 
             if os.path.exists(proyectos_extra_path):
-                cls.df_proyectos_extra = pd.read_excel(proyectos_extra_path)
+                cls.df_proyectos_extra = pd.read_excel(proyectos_extra_path, dtype=str)
             else:
                 logger.warning(f"⚠️ {PROYECTOS_EXTRA_FILE} no encontrado. Sin enriquecimiento de proyectos.")
                 cls.df_proyectos_extra = pd.DataFrame(columns=["rut_ir", "titulo", "fuente", "a_inicio", "a_fin"])
 
             if os.path.exists(libros_path):
-                cls.df_libros = pd.read_excel(libros_path)
+                cls.df_libros = pd.read_excel(libros_path, dtype=str)
             else:
                 logger.warning(f"⚠️ Archivo de libros no encontrado: {libros_path}. Se omite.")
                 cls.df_libros = pd.DataFrame(columns=["rut_ir", "titulo", "tipo", "editorial", "autores"])
