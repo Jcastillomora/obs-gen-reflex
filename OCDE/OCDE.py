@@ -526,7 +526,7 @@ def investigator_page():
                                 rx.spacer(),
                                 rx.text("Proyectos: ", class_name="text-white text-xl"),
                                 rx.text(
-                                    f"{State.filtered_count}",
+                                    f"{State.total_items}",
                                     class_name="text-white text-2xl font-semibold",
                                 ),
                                 class_name="items-center justify-center gap-2",
@@ -539,7 +539,7 @@ def investigator_page():
                                     "Publicaciones: ", class_name="text-white text-xl"
                                 ),
                                 rx.text(
-                                    f"{State.filtered_count_pub}",
+                                    f"{State.total_items_pub}",
                                     class_name="text-white text-2xl font-semibold",
                                 ),
                                 class_name="items-center justify-center gap-2",
