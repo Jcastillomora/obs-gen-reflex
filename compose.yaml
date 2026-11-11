@@ -13,6 +13,8 @@ services:
       - ./assets/uploads:/app/assets/uploads
       - ./academicas.xlsx:/app/academicas.xlsx:ro
       - ./proyectos_total.xlsx:/app/proyectos_total.xlsx:ro
+      - ./proyectos.xlsx:/app/proyectos.xlsx:ro
+      - ./libros_total.xlsx:/app/libros_total.xlsx:ro
       - ./publicaciones_total.xlsx:/app/publicaciones_total.xlsx
       - ./.last_sync.json:/app/.last_sync.json
     restart: unless-stopped
