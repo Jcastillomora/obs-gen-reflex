@@ -430,13 +430,13 @@ class State(rx.State):
     
     @rx.event
     def load_entries(self):
-        """Carga proyectos del investigador actual usando proyectos.xlsx."""
+        """Carga proyectos del investigador actual usando DataCache."""
         if self.current_investigator is None:
             logger.error("load_entries: current_investigator es None.")
             return
 
         rut = str(self.current_investigator.rut_ir)
-        df = DataCache.get_proyectos_extra_by_rut(rut)
+        df = DataCache.get_proyectos_by_rut(rut)
 
         if df.empty:
             self.proyectos = []
