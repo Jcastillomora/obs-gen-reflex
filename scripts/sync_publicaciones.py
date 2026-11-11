@@ -58,7 +58,7 @@ def _generar_csv_investigadores(academicas_path: Path) -> Path:
     # Normalizar RUT (igual que DataCache)
     df["rut_ir"] = (
         df["rut_ir"].astype(str).str.strip().str.upper()
-        .str.replace(".", "", regex=False).str.lstrip("0")
+        .str.replace(".", "", regex=False)
     )
 
     csv_path = SCRIPTS / "_investigadores_tmp.csv"
@@ -72,7 +72,7 @@ def _generar_csv_investigadores(academicas_path: Path) -> Path:
 def normalizar_rut(serie: pd.Series) -> pd.Series:
     return (
         serie.astype(str).str.strip().str.upper()
-        .str.replace(".", "", regex=False).str.lstrip("0")
+        .str.replace(".", "", regex=False)
     )
 
 
@@ -101,7 +101,7 @@ def main(delay: float = DEFAULT_DELAY):
         # 4. Extraer publicaciones de cada CVInvestigador
         filas = []
         for cv in registros:
-            rut = str(getattr(cv, "rut_ir", "")).strip().lstrip("0")
+            rut = str(getattr(cv, "rut_ir", "")).strip()
             if not rut:
                 continue
             pubs_raw = getattr(cv, "publicaciones", "[]")

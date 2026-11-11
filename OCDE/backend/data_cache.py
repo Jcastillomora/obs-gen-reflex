@@ -184,7 +184,7 @@ class DataCache:
         df = df.dropna(subset=["id"])
         df["id"] = df["id"].astype(int)
         df["orcid"] = df["orcid"].fillna("")
-        df["rut_ir"] = df["rut_ir"].astype(str).str.strip().str.upper().str.replace(".", "", regex=False).str.lstrip("0")
+        df["rut_ir"] = df["rut_ir"].astype(str).str.strip().str.upper().str.replace(".", "", regex=False)
         df["grado_mayor"] = df["grado_mayor"].astype(str)
         df["grado_mayor"] = df["grado_mayor"].replace("nan", "INVESTIGADORA")
         df["grado_mayor"] = df["grado_mayor"].replace("", "INVESTIGADORA")
@@ -226,7 +226,7 @@ class DataCache:
         df = cls.df_proyectos
         df = df.replace("", np.nan)
         df.columns = df.columns.str.strip()
-        df["rut_ir"] = df["rut_ir"].astype(str).str.strip().str.upper().str.replace(".", "", regex=False).str.lstrip("0")
+        df["rut_ir"] = df["rut_ir"].astype(str).str.strip().str.upper().str.replace(".", "", regex=False)
         df["año"] = pd.to_numeric(df["año"], errors="coerce").fillna(0).astype(int)
         df["ocde_2"] = df["ocde_2"].fillna("SIN INFO")
         df["rol"] = df["rol"].fillna("Sin Info")
@@ -237,7 +237,7 @@ class DataCache:
         """Limpia y normaliza datos de proyectos.xlsx."""
         df = cls.df_proyectos_extra
         df = df.replace("", np.nan)
-        df["rut_ir"] = df["rut_ir"].astype(str).str.strip().str.upper().str.replace(".", "", regex=False).str.lstrip("0")
+        df["rut_ir"] = df["rut_ir"].astype(str).str.strip().str.upper().str.replace(".", "", regex=False)
         for col in ["a_inicio", "a_fin"]:
             if col in df.columns:
                 df[col] = pd.to_numeric(df[col], errors="coerce").apply(
@@ -330,7 +330,7 @@ class DataCache:
         """Limpia y normaliza datos de publicaciones."""
         df = cls.df_publicaciones
         df = df.replace("", np.nan)
-        df["rut_ir"] = df["rut_ir"].astype(str).str.strip().str.upper().str.replace(".", "", regex=False).str.lstrip("0")
+        df["rut_ir"] = df["rut_ir"].astype(str).str.strip().str.upper().str.replace(".", "", regex=False)
         # Campos de texto: rellenar NaN con cadena vacía
         # Año: solo enteros en rango [1981, año actual], el resto "Sin info"
         import datetime
@@ -350,7 +350,7 @@ class DataCache:
         """Limpia y normaliza datos de libros. Separa editorial e ISBN."""
         df = cls.df_libros
         df = df.replace("", np.nan)
-        df["rut_ir"] = df["rut_ir"].astype(str).str.strip().str.upper().str.replace(".", "", regex=False).str.lstrip("0")
+        df["rut_ir"] = df["rut_ir"].astype(str).str.strip().str.upper().str.replace(".", "", regex=False)
         for col in ["titulo", "tipo", "autores"]:
             if col in df.columns:
                 df[col] = df[col].astype(str).replace("nan", "Sin info")

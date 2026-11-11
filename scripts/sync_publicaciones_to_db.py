@@ -52,8 +52,8 @@ DEFAULT_DELAY = float(os.environ.get("SCRAPER_DELAY", "1.5"))
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 def normalizar_rut(rut: str) -> str:
-    """Normaliza RUT (quita puntos, K mayúscula, sin leading zeros)"""
-    return str(rut).strip().upper().replace(".", "").lstrip("0")
+    """Normaliza RUT (quita puntos, K mayúscula, preserva ceros iniciales)"""
+    return str(rut).strip().upper().replace(".", "")
 
 def extraer_año_revista(revista: str) -> str:
     """Extrae año desde campo revista (formato: ..., 2023 ...)"""
