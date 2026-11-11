@@ -357,10 +357,11 @@ class State(rx.State):
 
     @rx.var
     def current_investigator(self) -> Optional[Investigador]:
-        if not self.id:
+        id_param = self.router.page.params.get("id", "")
+        if not id_param:
             return None
         try:
-            search_id = int(self.id)
+            search_id = int(id_param)
         except ValueError:
             return None
         for inv in self.investigadores:
