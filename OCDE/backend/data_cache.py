@@ -227,6 +227,10 @@ class DataCache:
         df = df.replace("", np.nan)
         df.columns = df.columns.str.strip()
         df["rut_ir"] = df["rut_ir"].astype(str).str.strip().str.upper().str.replace(".", "", regex=False)
+
+        # Filtrar proyectos con RUT inválido (000000000 = RUTs corruptos por lstrip histórico)
+        df = df[df["rut_ir"] != "000000000"]
+
         df["año"] = pd.to_numeric(df["año"], errors="coerce").fillna(0).astype(int)
         df["ocde_2"] = df["ocde_2"].fillna("SIN INFO")
         df["rol"] = df["rol"].fillna("Sin Info")
