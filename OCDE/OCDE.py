@@ -266,13 +266,12 @@ def academicas():
         navbar_main(),
         navbar_searchbar(),
         areas_selector(),
-        # Fecha del último scraping de publicaciones
+        # Fecha del último scraping completo (proyectos + publicaciones)
         rx.cond(
-            State.last_sync_date != "",
+            State.last_sync_message != "",
             rx.box(
                 rx.text(
-                    "Última actualización de publicaciones: ",
-                    State.last_sync_date,
+                    State.last_sync_message,
                     size="2",
                     class_name="text-gray-500 text-center italic"
                 ),

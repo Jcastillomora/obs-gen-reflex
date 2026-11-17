@@ -19,6 +19,7 @@ Automatización:
 import argparse
 import sys
 import subprocess
+import json
 from pathlib import Path
 from datetime import datetime
 
@@ -28,6 +29,28 @@ from datetime import datetime
 
 ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS_DIR = ROOT / "scripts"
+LAST_SYNC_FILE = ROOT / ".last_sync.json"
+
+
+# =========================================================
+# FUNCIONES AUXILIARES
+# =========================================================
+
+def guardar_fecha_ultimo_sync(proyectos_nuevos: int = 0, publicaciones_nuevas: int = 0):
+    """Guarda la fecha y estadísticas de la última sincronización completa."""
+    try:
+        sync_data = {
+            "last_sync": datetime.now().isoformat(),
+            "proyectos_nuevos": proyectos_nuevos,
+            "publicaciones_nuevas": publicaciones_nuevas
+        }
+
+        with open(LAST_SYNC_FILE, 'w', encoding='utf-8') as f:
+            json.dump(sync_data, f, indent=2, ensure_ascii=False)
+
+        print(f"   [OK] Fecha de sincronizacion guardada en .last_sync.json")
+    except Exception as e:
+        print(f"   [WARN] No se pudo guardar .last_sync.json: {e}")
 
 
 # =========================================================
@@ -161,7 +184,13 @@ def run_weekly_sync(delay: float = 1.5, dry_run: bool = False):
 
     if fallidos == 0:
         print("\n[OK] Sincronizacion semanal completada exitosamente!")
+
+        # Guardar fecha de última sincronización (solo si no es dry_run)
         if not dry_run:
+            # TODO: Parsear outputs para obtener cantidades exactas
+            # Por ahora usar 0 como placeholder
+            guardar_fecha_ultimo_sync(proyectos_nuevos=0, publicaciones_nuevas=0)
+
             print("\n[IMPORTANTE] Reiniciar la aplicacion para que DataCache recargue:")
             print("  reflex run")
     else:

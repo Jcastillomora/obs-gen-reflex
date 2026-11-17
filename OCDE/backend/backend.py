@@ -152,9 +152,30 @@ class State(rx.State):
     documentos_items: list[dict] = []
     is_loading_repositorio: bool = False
 
-    # Fecha del último scraping de publicaciones
+    # Fecha del último scraping completo (proyectos + publicaciones)
     last_sync_date: str = ""
-    last_sync_nuevas: int = 0
+    last_sync_proyectos_nuevos: int = 0
+    last_sync_publicaciones_nuevas: int = 0
+
+    @rx.var
+    def last_sync_message(self) -> str:
+        """Mensaje unificado de última sincronización."""
+        if not self.last_sync_date:
+            return ""
+
+        # Construir mensaje con cantidades si son > 0
+        partes = []
+        if self.last_sync_proyectos_nuevos > 0:
+            partes.append(f"{self.last_sync_proyectos_nuevos} proyecto{'s' if self.last_sync_proyectos_nuevos != 1 else ''}")
+        if self.last_sync_publicaciones_nuevas > 0:
+            partes.append(f"{self.last_sync_publicaciones_nuevas} publicación{'es' if self.last_sync_publicaciones_nuevas != 1 else ''}")
+
+        if partes:
+            detalle = f" ({' + '.join(partes)})"
+        else:
+            detalle = ""
+
+        return f"Última sincronización: {self.last_sync_date}{detalle}"
 
     # =========================================================
     # CAROUSEL
@@ -398,14 +419,15 @@ class State(rx.State):
         self.load_last_sync_date()
 
     def load_last_sync_date(self):
-        """Carga la fecha del último scraping de publicaciones desde archivo JSON."""
+        """Carga la fecha del último scraping completo (proyectos + publicaciones) desde archivo JSON."""
         try:
             # Archivo en la raíz del proyecto (no en OCDE/)
             last_sync_file = Path(__file__).parent.parent.parent / ".last_sync.json"
 
             if not last_sync_file.exists():
                 self.last_sync_date = ""
-                self.last_sync_nuevas = 0
+                self.last_sync_proyectos_nuevos = 0
+                self.last_sync_publicaciones_nuevas = 0
                 return
 
             with open(last_sync_file, "r", encoding="utf-8") as f:
@@ -419,12 +441,14 @@ class State(rx.State):
             else:
                 self.last_sync_date = ""
 
-            self.last_sync_nuevas = data.get("publicaciones_nuevas", 0)
+            self.last_sync_proyectos_nuevos = data.get("proyectos_nuevos", 0)
+            self.last_sync_publicaciones_nuevas = data.get("publicaciones_nuevas", 0)
 
         except Exception as e:
             logger.warning(f"No se pudo cargar fecha de último sync: {e}")
             self.last_sync_date = ""
-            self.last_sync_nuevas = 0
+            self.last_sync_proyectos_nuevos = 0
+            self.last_sync_publicaciones_nuevas = 0
 
     # =========================================================
     # load_entries - Requerido por OCDE.py línea 358
