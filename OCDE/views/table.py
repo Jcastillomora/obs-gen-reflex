@@ -48,15 +48,21 @@ def _periodo(p: Proyectos) -> rx.Component:
 def _show_player(proyectos: Proyectos, index: int) -> rx.Component:
     return rx.table.row(
         rx.table.row_header_cell(proyectos.titulo),
-        rx.table.cell(_periodo(proyectos)),
-        rx.table.cell(proyectos.rol),
         rx.table.cell(
             rx.cond(
-                proyectos.fuente != "",
-                rx.text(proyectos.fuente),
+                proyectos.año != "",
+                rx.text(proyectos.año),
                 rx.text("—", class_name="text-gray-400"),
             )
         ),
+        rx.table.cell(
+            rx.cond(
+                proyectos.tipo_proyecto != "",
+                rx.text(proyectos.tipo_proyecto),
+                rx.text("—", class_name="text-gray-400"),
+            )
+        ),
+        rx.table.cell(proyectos.rol),
         align="center",
         size="2",
         class_name="bg-white text-indigo-900 text-sm",
@@ -322,9 +328,9 @@ def main_table() -> rx.Component:
             rx.table.header(
                 rx.table.row(
                     _header_cell("Título", "notebook-pen"),
-                    _header_cell("Período", "calendar-range"),
+                    _header_cell("Año", "calendar"),
+                    _header_cell("Tipo Proyecto", "folder"),
                     _header_cell("Rol", "building"),
-                    _header_cell("Fuente", "landmark"),
                 ),
                 class_name="w-full bg-indigo-400",
             ),

@@ -1,5 +1,6 @@
 import reflex as rx
 from ..backend.backend import State
+from ..components.loader import repositorio_loader
 
 
 def _doc_row(item: dict) -> rx.Component:
@@ -28,26 +29,33 @@ def contenido_reportes(items) -> rx.Component:
 
 
 def repo_menu() -> rx.Component:
-    return rx.accordion.root(
-        rx.accordion.item(
-            header=rx.text.kbd("Reportes", size="7", class_name="text-indigo-600"),
-            content=contenido_reportes(State.reportes_items),
-            value="item1",
-            class_name="bg-white",
+    """Menú de repositorio con loader."""
+    return rx.cond(
+        State.is_loading_repositorio,
+        # Mostrar loader mientras carga
+        repositorio_loader(),
+        # Mostrar contenido cuando termine de cargar
+        rx.accordion.root(
+            rx.accordion.item(
+                header=rx.text.kbd("Reportes", size="7", class_name="text-indigo-600"),
+                content=contenido_reportes(State.reportes_items),
+                value="item1",
+                class_name="bg-white",
+                color_scheme="indigo",
+            ),
+            rx.accordion.item(
+                header=rx.text.kbd("Documentos", size="7", class_name="text-indigo-600"),
+                content=contenido_reportes(State.documentos_items),
+                value="item2",
+                class_name="bg-white",
+                color_scheme="indigo",
+            ),
+            collapsible=True,
+            default_value="item2",
+            type="multiple",
+            variant="surface",
             color_scheme="indigo",
+            class_name="w-full",
+            show_dividers=True,
         ),
-        rx.accordion.item(
-            header=rx.text.kbd("Documentos", size="7", class_name="text-indigo-600"),
-            content=contenido_reportes(State.documentos_items),
-            value="item2",
-            class_name="bg-white",
-            color_scheme="indigo",
-        ),
-        collapsible=True,
-        default_value="item2",
-        type="multiple",
-        variant="surface",
-        color_scheme="indigo",
-        class_name="w-full",
-        show_dividers=True,
     )

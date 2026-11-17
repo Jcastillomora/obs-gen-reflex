@@ -231,9 +231,10 @@ class DataCache:
         # Filtrar proyectos con RUT inválido (000000000 = RUTs corruptos por lstrip histórico)
         df = df[df["rut_ir"] != "000000000"]
 
-        df["año"] = pd.to_numeric(df["año"], errors="coerce").fillna(0).astype(int)
+        df["año"] = pd.to_numeric(df["año"], errors="coerce").fillna(0).astype(int).astype(str).replace("0", "")
         df["ocde_2"] = df["ocde_2"].fillna("SIN INFO")
         df["rol"] = df["rol"].fillna("Sin Info")
+        df["tipo_proyecto"] = df["tipo_proyecto"].fillna("").astype(str).str.strip()
         cls.df_proyectos = df
     
     @classmethod

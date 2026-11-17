@@ -46,11 +46,11 @@ class Proyectos(rx.Base):
     a_inicio: str = ""
     a_fin: str = ""
     rut_ir: str = ""
-    # campos legacy de proyectos_total (no usados en tabla actual)
+    # campos adicionales de proyectos_total
     codigo: str = ""
-    año: str = ""
+    año: str = ""  # usado en tabla
     ocde_2: str = ""
-    tipo_proyecto: str = ""
+    tipo_proyecto: str = ""  # usado en tabla
     investigador_responsable: str = ""
 
 

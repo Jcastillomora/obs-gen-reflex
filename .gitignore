@@ -1,3 +1,4 @@
+*.db
 .states
 data/*.db
 !data/.gitkeep
@@ -18,9 +19,12 @@ libros_total.xlsx
 proyectos.xlsx
 .last_sync.json
 
+# Backups de Excel
+*_backup_*.xlsx
+~$*.xlsx
+
 # Claude Code
 .claude/
 .compliance/
-CLAUDE.md
 skills-lock.json
 2026-*.txt

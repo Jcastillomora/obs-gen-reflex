@@ -150,6 +150,7 @@ class State(rx.State):
     # Repositorio (cargado de DB)
     reportes_items: list[dict] = []
     documentos_items: list[dict] = []
+    is_loading_repositorio: bool = False
 
     # Fecha del último scraping de publicaciones
     last_sync_date: str = ""
@@ -444,7 +445,7 @@ class State(rx.State):
             self.total_items = 0
             return
 
-        _campos = ["rut_ir", "titulo", "rol", "fuente", "a_inicio", "a_fin"]
+        _campos = ["rut_ir", "titulo", "rol", "fuente", "a_inicio", "a_fin", "año", "tipo_proyecto"]
         self.proyectos = [Proyectos(**{k: row[k] for k in _campos if k in row}) for _, row in df.iterrows()]
         self.total_items = len(self.proyectos)
         self.offset = 0
@@ -1143,7 +1144,11 @@ class State(rx.State):
     # =========================================================
 
     @rx.event
-    def load_repositorio(self):
+    async def load_repositorio(self):
+        """Carga documentos y reportes desde la base de datos."""
+        # Activar el loader
+        self.is_loading_repositorio = True
+
         _DEFAULTS = [
             {
                 "titulo": "Brechas de Género en Educación Superior 2025",
@@ -1202,4 +1207,8 @@ class State(rx.State):
             logger.error("Error cargando repositorio: %s", e)
             self.reportes_items = []
             self.documentos_items = []
+        finally:
+            # Desactivar el loader al finalizar (éxito o error)
+            self.is_loading_repositorio = False
+
         self.ai_search_results_summary = ""
