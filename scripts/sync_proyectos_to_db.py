@@ -102,12 +102,16 @@ def mapear_fuente_a_tipo(fuente: str) -> str:
 
 
 def crear_backup(file_path: Path) -> Path:
-    """Crea un backup del archivo con timestamp."""
+    """Crea un backup del archivo con timestamp en /app/data."""
     if not file_path.exists():
         return None
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M")
-    backup_path = file_path.parent / f"{file_path.stem}_backup_{timestamp}{file_path.suffix}"
+
+    # Guardar backups en /app/data/ (tiene permisos de escritura)
+    backup_dir = REPO_ROOT / "data"
+    backup_dir.mkdir(exist_ok=True)
+    backup_path = backup_dir / f"{file_path.stem}_backup_{timestamp}{file_path.suffix}"
 
     import shutil
     shutil.copy2(file_path, backup_path)

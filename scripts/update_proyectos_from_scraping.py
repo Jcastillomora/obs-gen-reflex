@@ -136,7 +136,14 @@ def update_proyectos(delay: float = 1.5):
     print(f"   Esto puede tardar varios minutos...")
     print(f"   Delay entre requests: {delay} segundos\n")
 
-    registros = scrape(csv_or_df=df_scraping, delay=delay)
+    # Guardar DataFrame en CSV temporal para el scraper
+    temp_csv = REPO_ROOT / "academicas_temp.csv"
+    df_scraping.to_csv(temp_csv, index=False)
+
+    registros = scrape(ruta_csv=str(temp_csv), delay=delay)
+
+    # Limpiar archivo temporal
+    temp_csv.unlink(missing_ok=True)
 
     print(f"\n   [OK] Scraping completado: {len(registros)} registros")
 
