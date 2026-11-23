@@ -184,7 +184,7 @@ def actualizar_excel(df_nuevas: pd.DataFrame, dry_run: bool = False) -> int:
         # Backup del anterior en /app/data/ (tiene permisos de escritura)
         if OUTPUT_EXCEL.exists():
             try:
-                backup_dir = REPO_ROOT / "data"
+                backup_dir = ROOT / "data"
                 backup_dir.mkdir(exist_ok=True)
                 backup = backup_dir / f"publicaciones_total_backup_{datetime.now():%Y%m%d_%H%M}.xlsx"
                 import shutil

@@ -109,7 +109,7 @@ def crear_backup(file_path: Path) -> Path:
     timestamp = datetime.now().strftime("%Y%m%d_%H%M")
 
     # Guardar backups en /app/data/ (tiene permisos de escritura)
-    backup_dir = REPO_ROOT / "data"
+    backup_dir = ROOT / "data"
     backup_dir.mkdir(exist_ok=True)
     backup_path = backup_dir / f"{file_path.stem}_backup_{timestamp}{file_path.suffix}"
 
